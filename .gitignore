@@ -52,6 +52,15 @@ bin/
 
 
 
+
+
+
+
+*__pycache__/
+*venv/
+
+
+
 # Repo dev
 circle-guard-public-dev/
 
