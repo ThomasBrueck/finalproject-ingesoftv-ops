@@ -78,6 +78,7 @@ pipeline {
 
         stage('Deploy to Stage K8s') {
             steps {
+                sh "kubectl delete pods -n ${K8S_NS} -l app=${SERVICE_NAME} --force --grace-period=0 2>/dev/null || true"
                 sh "kubectl apply -f k8s/stage/00-namespace.yaml"
                 sh """
                     kubectl create secret generic circleguard-stage-secrets \\
