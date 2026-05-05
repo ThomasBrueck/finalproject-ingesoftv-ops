@@ -38,13 +38,13 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 sh """
+                    eval \$(minikube docker-env)
                     docker build \\
                         -f services/${SERVICE_NAME}/Dockerfile \\
                         -t ${IMAGE_NAME}:${IMAGE_TAG} \\
                         --label "dev-commit=${env.DEV_COMMIT}" \\
                         --label "build-number=${IMAGE_TAG}" \\
                         app/
-                    minikube image load ${IMAGE_NAME}:${IMAGE_TAG}
                 """
             }
         }
@@ -173,7 +173,7 @@ pipeline {
                     docker run --rm --network host \\
                         -v \$(pwd)/tests/performance/locust:/mnt/locust \\
                         locustio/locust -f /mnt/locust/locustfile.py \\
-                        --headless --users 20 --spawn-rate 5 --run-time 60s \\
+                        --headless --users 20 --spawn-rate 5 --run-time 30s \\
                         --host "\${STAGE_URL}" --only-summary || true
                 """
             }
