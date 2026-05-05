@@ -1,0 +1,93 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: circleguard-auth-service
+  namespace: stage
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: circleguard-auth-service
+  template:
+    metadata:
+      labels:
+        app: circleguard-auth-service
+    spec:
+      containers:
+      - name: circleguard-auth-service
+        image: circle-guard/circleguard-auth-service:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8180
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        readinessProbe:
+          httpGet:
+            path: /actuator/health
+            port: 8180
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          failureThreshold: 5
+        livenessProbe:
+          httpGet:
+            path: /actuator/health
+            port: 8180
+          initialDelaySeconds: 60
+          periodSeconds: 15
+        env:
+        - name: SPRING_PROFILES_ACTIVE
+          value: "staging"
+        - name: SPRING_DATASOURCE_URL
+          value: "jdbc:postgresql://host.minikube.internal:5434/circleguard_auth"
+        - name: SPRING_DATASOURCE_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: circleguard-stage-secrets
+              key: DB_USERNAME
+        - name: SPRING_DATASOURCE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: circleguard-stage-secrets
+              key: DB_PASSWORD
+        - name: SPRING_LDAP_URLS
+          value: "ldap://host.minikube.internal:389"
+        - name: SPRING_LDAP_BASE
+          value: "dc=circleguard,dc=edu"
+        - name: SPRING_LDAP_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: circleguard-stage-secrets
+              key: LDAP_USERNAME
+        - name: SPRING_LDAP_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: circleguard-stage-secrets
+              key: LDAP_PASSWORD
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: circleguard-stage-secrets
+              key: JWT_SECRET
+        - name: QR_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: circleguard-stage-secrets
+              key: QR_SECRET
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: circleguard-auth-service
+  namespace: stage
+spec:
+  selector:
+    app: circleguard-auth-service
+  type: NodePort
+  ports:
+  - port: 80
+    targetPort: 8180

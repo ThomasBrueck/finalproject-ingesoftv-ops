@@ -1,0 +1,200 @@
+pipeline {
+    agent any
+
+    parameters {
+        string(name: 'DEV_REPO_BRANCH',
+               defaultValue: 'master',
+               description: 'Branch o commit SHA del repo de desarrollo a construir')
+    }
+
+    environment {
+        SERVICE_NAME  = "circleguard-identity-service"
+        IMAGE_NAME    = "circle-guard/circleguard-identity-service"
+        IMAGE_TAG     = "${env.BUILD_NUMBER}"
+        K8S_NS        = "stage"
+        JWT_SECRET_VAL = "my-super-secret-stage-key-32-chars-long-12345"
+        QR_SECRET_VAL  = "my-qr-secret-key-for-stage-1234567890"
+        DB_USER_VAL    = "admin"
+        DB_PASS_VAL    = "password"
+        LDAP_USER_VAL  = "cn=admin,dc=circleguard,dc=edu"
+        LDAP_PASS_VAL  = "admin"
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+                dir('app') {
+                    git url: 'https://github.com/ThomasBrueck/circle-guard-public-dev',
+                        branch: "${params.DEV_REPO_BRANCH}"
+                }
+                script {
+                    env.DEV_COMMIT = sh(script: 'git -C app rev-parse --short HEAD', returnStdout: true).trim()
+                    echo "DEV repo commit: ${env.DEV_COMMIT} | INFRA build: ${IMAGE_TAG}"
+                }
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                sh """
+                    docker build \\
+                        -f services/${SERVICE_NAME}/Dockerfile \\
+                        -t ${IMAGE_NAME}:${IMAGE_TAG} \\
+                        --label "dev-commit=${env.DEV_COMMIT}" \\
+                        --label "build-number=${IMAGE_TAG}" \\
+                        app/
+                    minikube image load ${IMAGE_NAME}:${IMAGE_TAG}
+                """
+            }
+        }
+
+        stage('Unit Tests') {
+            steps {
+                sh """
+                    docker build --target builder \\
+                        -f services/${SERVICE_NAME}/Dockerfile \\
+                        -t ${IMAGE_NAME}:builder-${IMAGE_TAG} \\
+                        app/
+                    docker rm -f test-runner-${IMAGE_TAG} 2>/dev/null || true
+                    docker run --name test-runner-${IMAGE_TAG} \\
+                        ${IMAGE_NAME}:builder-${IMAGE_TAG} \\
+                        ./gradlew :services:${SERVICE_NAME}:test \\
+                            --tests 'com.circleguard.*.service.*' \\
+                            --tests 'com.circleguard.*.controller.*' \\
+                            --tests 'com.circleguard.*.repository.*' \\
+                            --tests 'com.circleguard.*.util.*' \\
+                            --no-daemon; TEST_EXIT=\$?
+                    rm -rf test-results && mkdir -p test-results
+                    docker cp test-runner-${IMAGE_TAG}:/app/services/${SERVICE_NAME}/build/test-results/test/. test-results/ || true
+                    docker rm test-runner-${IMAGE_TAG} || true
+                    exit \$TEST_EXIT
+                """
+            }
+            post {
+                always { junit allowEmptyResults: true, testResults: 'test-results/**/*.xml' }
+            }
+        }
+
+        stage('Deploy to Stage K8s') {
+            steps {
+                sh "kubectl apply -f k8s/stage/00-namespace.yaml"
+                sh """
+                    kubectl create secret generic circleguard-stage-secrets \\
+                        --from-literal=JWT_SECRET="${env.JWT_SECRET_VAL}" \\
+                        --from-literal=QR_SECRET="${env.QR_SECRET_VAL}" \\
+                        --from-literal=DB_USERNAME="${env.DB_USER_VAL}" \\
+                        --from-literal=DB_PASSWORD="${env.DB_PASS_VAL}" \\
+                        --from-literal=LDAP_USERNAME="${env.LDAP_USER_VAL}" \\
+                        --from-literal=LDAP_PASSWORD="${env.LDAP_PASS_VAL}" \\
+                        -n ${K8S_NS} --dry-run=client -o yaml | kubectl apply -f -
+                """
+                sh "kubectl apply -f k8s/stage/${SERVICE_NAME}-deployment.yaml"
+                sh "kubectl set image deployment/${SERVICE_NAME} ${SERVICE_NAME}=${IMAGE_NAME}:${IMAGE_TAG} -n ${K8S_NS}"
+                sh "kubectl rollout status deployment/${SERVICE_NAME} -n ${K8S_NS} --timeout=300s"
+            }
+        }
+
+        stage('Smoke Test on Stage') {
+            steps {
+                sh """
+                    MINIKUBE_IP=\$(minikube ip)
+                    NODE_PORT=\$(kubectl get svc ${SERVICE_NAME} -n ${K8S_NS} -o jsonpath='{.spec.ports[0].nodePort}')
+                    STAGE_URL="http://\${MINIKUBE_IP}:\${NODE_PORT}"
+                    echo "Smoke test contra K8s desplegado: \${STAGE_URL}"
+                    for i in 1 2 3 4 5; do
+                        STATUS=\$(curl -s -o /dev/null -w "%{http_code}" "\${STAGE_URL}/actuator/health" || echo "000")
+                        if [ "\$STATUS" = "200" ]; then echo "Smoke test OK"; exit 0; fi
+                        echo "Intento \$i: status=\${STATUS}, reintentando en 15s..."; sleep 15
+                    done
+                    echo "FALLO: servicio no saludable tras 5 intentos"; exit 1
+                """
+            }
+        }
+
+        stage('Integration Tests on Stage') {
+            steps {
+                sh """
+                    INT_COUNT=\$(find app/services/${SERVICE_NAME}/src/test -name "*IntegrationTest.java" 2>/dev/null | wc -l)
+                    if [ "\$INT_COUNT" -eq 0 ]; then echo "Sin integration tests, saltando"; exit 0; fi
+                    MINIKUBE_IP=\$(minikube ip)
+                    NODE_PORT=\$(kubectl get svc ${SERVICE_NAME} -n ${K8S_NS} -o jsonpath='{.spec.ports[0].nodePort}')
+                    STAGE_URL="http://\${MINIKUBE_IP}:\${NODE_PORT}"
+                    echo "Integration tests contra: \${STAGE_URL}"
+                    docker rm -f int-stage-${IMAGE_TAG} 2>/dev/null || true
+                    docker run --name int-stage-${IMAGE_TAG} --network host \\
+                        -e TEST_BASE_URL="\${STAGE_URL}" \\
+                        ${IMAGE_NAME}:builder-${IMAGE_TAG} \\
+                        ./gradlew :services:${SERVICE_NAME}:test \\
+                            --tests 'com.circleguard.*.integration.*' \\
+                            -Dtest.baseUrl="\${STAGE_URL}" --no-daemon; INT_EXIT=\$?
+                    rm -rf integration-stage-results && mkdir -p integration-stage-results
+                    docker cp int-stage-${IMAGE_TAG}:/app/services/${SERVICE_NAME}/build/test-results/test/. integration-stage-results/ || true
+                    docker rm int-stage-${IMAGE_TAG} || true
+                    exit \$INT_EXIT
+                """
+            }
+            post {
+                always { junit allowEmptyResults: true, testResults: 'integration-stage-results/**/*.xml' }
+            }
+        }
+
+        stage('E2E Tests on Stage') {
+            steps {
+                sh """
+                    E2E_COUNT=\$(find app/services/${SERVICE_NAME}/src/test -name "*E2ETest.java" 2>/dev/null | wc -l)
+                    if [ "\$E2E_COUNT" -eq 0 ]; then echo "Sin E2E tests, saltando"; exit 0; fi
+                    MINIKUBE_IP=\$(minikube ip)
+                    NODE_PORT=\$(kubectl get svc ${SERVICE_NAME} -n ${K8S_NS} -o jsonpath='{.spec.ports[0].nodePort}')
+                    STAGE_URL="http://\${MINIKUBE_IP}:\${NODE_PORT}"
+                    echo "E2E tests contra: \${STAGE_URL}"
+                    docker rm -f e2e-stage-${IMAGE_TAG} 2>/dev/null || true
+                    docker run --name e2e-stage-${IMAGE_TAG} --network host \\
+                        -e TEST_BASE_URL="\${STAGE_URL}" \\
+                        ${IMAGE_NAME}:builder-${IMAGE_TAG} \\
+                        ./gradlew :services:${SERVICE_NAME}:test \\
+                            --tests 'com.circleguard.*.e2e.*' \\
+                            -Dtest.baseUrl="\${STAGE_URL}" --no-daemon; E2E_EXIT=\$?
+                    rm -rf e2e-stage-results && mkdir -p e2e-stage-results
+                    docker cp e2e-stage-${IMAGE_TAG}:/app/services/${SERVICE_NAME}/build/test-results/test/. e2e-stage-results/ || true
+                    docker rm e2e-stage-${IMAGE_TAG} || true
+                    exit \$E2E_EXIT
+                """
+            }
+            post {
+                always { junit allowEmptyResults: true, testResults: 'e2e-stage-results/**/*.xml' }
+            }
+        }
+
+        stage('Performance Tests on Stage') {
+            steps {
+                sh """
+                    MINIKUBE_IP=\$(minikube ip)
+                    NODE_PORT=\$(kubectl get svc ${SERVICE_NAME} -n ${K8S_NS} -o jsonpath='{.spec.ports[0].nodePort}')
+                    STAGE_URL="http://\${MINIKUBE_IP}:\${NODE_PORT}"
+                    docker run --rm --network host \\
+                        -v \$(pwd)/tests/performance/locust:/mnt/locust \\
+                        locustio/locust -f /mnt/locust/locustfile.py \\
+                        --headless --users 20 --spawn-rate 5 --run-time 60s \\
+                        --host "\${STAGE_URL}" --only-summary || true
+                """
+            }
+        }
+    }
+
+    post {
+        always {
+            sh "docker rmi ${IMAGE_NAME}:builder-${IMAGE_TAG} || true"
+        }
+        failure {
+            script {
+                echo "Pipeline FALLÓ — rollback de ${SERVICE_NAME} en ${K8S_NS}"
+                sh "kubectl rollout undo deployment/${SERVICE_NAME} -n ${K8S_NS} || true"
+                sh "kubectl rollout status deployment/${SERVICE_NAME} -n ${K8S_NS} --timeout=120s || true"
+            }
+        }
+        success {
+            echo "Stage pipeline OK: ${SERVICE_NAME}:${IMAGE_TAG} (dev commit: ${env.DEV_COMMIT})"
+        }
+    }
+}

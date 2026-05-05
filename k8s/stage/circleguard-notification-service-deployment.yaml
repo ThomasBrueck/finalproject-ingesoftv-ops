@@ -1,0 +1,73 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: circleguard-notification-service
+  namespace: stage
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: circleguard-notification-service
+  template:
+    metadata:
+      labels:
+        app: circleguard-notification-service
+    spec:
+      containers:
+      - name: circleguard-notification-service
+        image: circle-guard/circleguard-notification-service:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8082
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        readinessProbe:
+          httpGet:
+            path: /actuator/health
+            port: 8082
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          failureThreshold: 5
+        livenessProbe:
+          httpGet:
+            path: /actuator/health
+            port: 8082
+          initialDelaySeconds: 60
+          periodSeconds: 15
+        env:
+        - name: SPRING_PROFILES_ACTIVE
+          value: "staging"
+        - name: SPRING_KAFKA_BOOTSTRAP_SERVERS
+          value: "host.minikube.internal:9092"
+        - name: SPRING_MAIL_HOST
+          value: "host.minikube.internal"
+        - name: AUTH_API_URL
+          value: "http://circleguard-auth-service.stage.svc.cluster.local"
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: circleguard-stage-secrets
+              key: JWT_SECRET
+        - name: QR_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: circleguard-stage-secrets
+              key: QR_SECRET
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: circleguard-notification-service
+  namespace: stage
+spec:
+  selector:
+    app: circleguard-notification-service
+  type: NodePort
+  ports:
+  - port: 80
+    targetPort: 8082
