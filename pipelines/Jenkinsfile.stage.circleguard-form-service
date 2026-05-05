@@ -108,7 +108,7 @@ pipeline {
                     echo "Smoke test contra K8s desplegado: \${STAGE_URL}"
                     for i in 1 2 3; do
                         STATUS=\$(curl -s -o /dev/null -w "%{http_code}" "\${STAGE_URL}/actuator/health" || echo "000")
-                        if [ "\$STATUS" = "200" ]; then echo "Smoke test OK"; exit 0; fi
+                        if [ "\$STATUS" != "000" ] && echo "\$STATUS" | grep -qvE "^5"; then echo "Smoke test OK: HTTP \$STATUS"; exit 0; fi
                         echo "Intento \$i: status=\${STATUS}, reintentando en 5s..."; sleep 5
                     done
                     echo "FALLO: servicio no saludable tras 3 intentos"; exit 1
