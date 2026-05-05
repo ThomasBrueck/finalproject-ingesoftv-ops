@@ -32,17 +32,16 @@ spec:
             memory: "512Mi"
             cpu: "500m"
         readinessProbe:
-          httpGet:
-            path: /actuator/health
+          tcpSocket:
             port: 8087
-          initialDelaySeconds: 20
-          periodSeconds: 10
-          failureThreshold: 10
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          failureThreshold: 12
         livenessProbe:
           httpGet:
             path: /actuator/health
             port: 8087
-          initialDelaySeconds: 45
+          initialDelaySeconds: 30
           periodSeconds: 15
           failureThreshold: 5
         env:
@@ -52,8 +51,6 @@ spec:
           value: "host.minikube.internal"
         - name: SPRING_DATA_REDIS_PORT
           value: "6379"
-        - name: MANAGEMENT_HEALTH_REDIS_ENABLED
-          value: "false"
         - name: JWT_SECRET
           valueFrom:
             secretKeyRef:
@@ -64,6 +61,18 @@ spec:
             secretKeyRef:
               name: circleguard-stage-secrets
               key: QR_SECRET
+        - name: MANAGEMENT_HEALTH_DATASOURCE_ENABLED
+          value: "false"
+        - name: MANAGEMENT_HEALTH_LDAP_ENABLED
+          value: "false"
+        - name: MANAGEMENT_HEALTH_KAFKA_ENABLED
+          value: "false"
+        - name: MANAGEMENT_HEALTH_MAIL_ENABLED
+          value: "false"
+        - name: MANAGEMENT_HEALTH_REDIS_ENABLED
+          value: "false"
+        - name: MANAGEMENT_HEALTH_DISKSPACE_ENABLED
+          value: "false"
 ---
 apiVersion: v1
 kind: Service
