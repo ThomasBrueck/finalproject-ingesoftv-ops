@@ -5,6 +5,11 @@ metadata:
   namespace: stage
 spec:
   replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 1
   selector:
     matchLabels:
       app: circleguard-form-service
@@ -30,15 +35,16 @@ spec:
           httpGet:
             path: /actuator/health
             port: 8086
-          initialDelaySeconds: 30
+          initialDelaySeconds: 60
           periodSeconds: 10
-          failureThreshold: 5
+          failureThreshold: 10
         livenessProbe:
           httpGet:
             path: /actuator/health
             port: 8086
-          initialDelaySeconds: 60
+          initialDelaySeconds: 90
           periodSeconds: 15
+          failureThreshold: 5
         env:
         - name: SPRING_PROFILES_ACTIVE
           value: "staging"
@@ -56,6 +62,8 @@ spec:
               key: DB_PASSWORD
         - name: SPRING_KAFKA_BOOTSTRAP_SERVERS
           value: "host.minikube.internal:9092"
+        - name: MANAGEMENT_HEALTH_KAFKA_ENABLED
+          value: "false"
 ---
 apiVersion: v1
 kind: Service

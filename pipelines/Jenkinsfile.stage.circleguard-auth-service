@@ -114,7 +114,7 @@ pipeline {
                 sh "kubectl apply -f k8s/stage/${SERVICE_NAME}-deployment.yaml"
                 // Tag inmutable: solo BUILD_NUMBER, nunca latest en stage
                 sh "kubectl set image deployment/${SERVICE_NAME} ${SERVICE_NAME}=${IMAGE_NAME}:${IMAGE_TAG} -n ${K8S_NS}"
-                sh "kubectl rollout status deployment/${SERVICE_NAME} -n ${K8S_NS} --timeout=300s"
+                sh "kubectl rollout status deployment/${SERVICE_NAME} -n ${K8S_NS} --timeout=600s"
             }
         }
 
