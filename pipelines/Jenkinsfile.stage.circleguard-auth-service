@@ -78,6 +78,7 @@ pipeline {
                         -f services/${SERVICE_NAME}/Dockerfile \\
                         -t ${IMAGE_NAME}:builder-${IMAGE_TAG} \\
                         app/
+                    docker volume create gradle-cache-${IMAGE_TAG} || true
                     docker rm -f test-runner-${IMAGE_TAG} 2>/dev/null || true
                     docker run --name test-runner-${IMAGE_TAG} \\
                     -e SPRING_MAIN_LAZY_INITIALIZATION=true \\
@@ -86,6 +87,7 @@ pipeline {
                     -e MANAGEMENT_HEALTH_LDAP_ENABLED=false \\
                     -e MANAGEMENT_HEALTH_KAFKA_ENABLED=false \\
                     -e SPRING_KAFKA_LISTENER_MISSING_TOPICS_FATAL=false \\
+                    -v gradle-cache-${IMAGE_TAG}:/root/.gradle \\
                         ${IMAGE_NAME}:builder-${IMAGE_TAG} \\
                         ./gradlew :services:${SERVICE_NAME}:test \\
                             --tests 'com.circleguard.*.service.*' \\
@@ -170,6 +172,7 @@ pipeline {
                     docker rm -f int-stage-${IMAGE_TAG} 2>/dev/null || true
                     docker run --name int-stage-${IMAGE_TAG} --network host \\
                         -e TEST_BASE_URL="\${STAGE_URL}" \\
+                        -v gradle-cache-${IMAGE_TAG}:/root/.gradle \\
                         ${IMAGE_NAME}:builder-${IMAGE_TAG} \\
                         ./gradlew :services:${SERVICE_NAME}:test \\
                             --tests 'com.circleguard.*.integration.*' \\
@@ -202,6 +205,7 @@ pipeline {
                     docker rm -f e2e-stage-${IMAGE_TAG} 2>/dev/null || true
                     docker run --name e2e-stage-${IMAGE_TAG} --network host \\
                         -e TEST_BASE_URL="\${STAGE_URL}" \\
+                        -v gradle-cache-${IMAGE_TAG}:/root/.gradle \\
                         ${IMAGE_NAME}:builder-${IMAGE_TAG} \\
                         ./gradlew :services:${SERVICE_NAME}:test \\
                             --tests 'com.circleguard.*.e2e.*' \\
@@ -241,6 +245,7 @@ pipeline {
         always {
             // Limpiar imágenes builder para no acumular capas en el Docker host
             sh "docker rmi ${IMAGE_NAME}:builder-${IMAGE_TAG} || true"
+            sh "docker volume rm gradle-cache-${IMAGE_TAG} || true"
         }
         failure {
             // Rollback automático si cualquier stage falla después del deploy
