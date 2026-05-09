@@ -165,109 +165,23 @@ pipeline {
         stage('Generate Release Notes') {
             steps {
                 script {
-                    sh """
-                        VERSION="v${IMAGE_TAG}"
-                        SERVICE="${SERVICE_NAME}"
-                        BUILD="${IMAGE_TAG}"
-                        DEV_COMMIT="${env.DEV_COMMIT}"
-                        RELEASE_TAG="release/${SERVICE_NAME}/v${IMAGE_TAG}"
-
-                        # Commits del repo DEV desde el ultimo tag de release de este servicio
-                        cd app
-                        PREV_DEV_TAG=\$(git tag -l "v*" | sort -V | tail -1 2>/dev/null || echo "")
-
-                        if [ -z "\$PREV_DEV_TAG" ]; then
-                            LOG=\$(git log --pretty=format:"%h|%s|%an|%ad" --date=short --no-merges | head -30)
-                        else
-                            LOG=\$(git log "\${PREV_DEV_TAG}..HEAD" --pretty=format:"%h|%s|%an|%ad" --date=short --no-merges)
-                        fi
-                        cd ..
-
-                        # Generar Release Notes en Markdown (Conventional Commits)
-                        cat > release-notes.md << 'NOTES_EOF'
-# Release Notes
-NOTES_EOF
-
-                        cat >> release-notes.md << NOTES_EOF
-## \${SERVICE} \${VERSION}
-
-| Campo         | Valor                             |
-|---------------|-----------------------------------|
-| Servicio      | \${SERVICE}                      |
-| Version       | \${VERSION}                      |
-| Build Jenkins | \${BUILD}                        |
-| Commit DEV    | \${DEV_COMMIT}                   |
-| Fecha         | \$(date '+%Y-%m-%d %H:%M:%S UTC')  |
-| Ambiente      | PRODUCCION                        |
-
-NOTES_EOF
-
-                        # Nuevas funcionalidades (feat:)
-                        FEATS=\$(echo "\$LOG" | grep '|feat:' | sed "s/|/\t/g")
-                        if [ -n "\$FEATS" ]; then
-                            echo "## Nuevas Funcionalidades" >> release-notes.md
-                            echo "\$LOG" | grep '|feat:' | while IFS='|' read hash msg author date; do
-                                echo "- \$msg (\$hash - \$author, \$date)" >> release-notes.md
-                            done
-                            echo "" >> release-notes.md
-                        fi
-
-                        # Correcciones (fix:)
-                        FIXES=\$(echo "\$LOG" | grep '|fix:')
-                        if [ -n "\$FIXES" ]; then
-                            echo "## Correcciones de Bugs" >> release-notes.md
-                            echo "\$LOG" | grep '|fix:' | while IFS='|' read hash msg author date; do
-                                echo "- \$msg (\$hash - \$author, \$date)" >> release-notes.md
-                            done
-                            echo "" >> release-notes.md
-                        fi
-
-                        # Rendimiento (perf:)
-                        PERFS=\$(echo "\$LOG" | grep '|perf:')
-                        if [ -n "\$PERFS" ]; then
-                            echo "## Mejoras de Rendimiento" >> release-notes.md
-                            echo "\$LOG" | grep '|perf:' | while IFS='|' read hash msg author date; do
-                                echo "- \$msg (\$hash - \$author, \$date)" >> release-notes.md
-                            done
-                            echo "" >> release-notes.md
-                        fi
-
-                        # Mantenimiento (chore, refactor, docs, ci, build)
-                        MAINT=\$(echo "\$LOG" | grep -E '\|(chore|refactor|docs|ci|build|style|test):')
-                        if [ -n "\$MAINT" ]; then
-                            echo "## Mantenimiento y Refactorizacion" >> release-notes.md
-                            echo "\$LOG" | grep -E '\|(chore|refactor|docs|ci|build|style|test):' | while IFS='|' read hash msg author date; do
-                                echo "- \$msg (\$hash - \$author, \$date)" >> release-notes.md
-                            done
-                            echo "" >> release-notes.md
-                        fi
-
-                        # Todos los cambios
-                        echo "## Todos los Cambios" >> release-notes.md
-                        echo "\$LOG" | while IFS='|' read hash msg author date; do
-                            echo "- [\$hash] \$msg — \$author (\$date)" >> release-notes.md
-                        done
-
-                        echo ""
-                        echo "=== RELEASE NOTES GENERADAS ==="
-                        cat release-notes.md
-
-                        # Crear tag de release en repo INFRA
-                        git tag -a "\$RELEASE_TAG" -m "Production release ${SERVICE_NAME} v${IMAGE_TAG} — DEV commit ${DEV_COMMIT}" || true
-                        git push origin "\$RELEASE_TAG" || true
-
-                        # Publicar GitHub Release si gh esta disponible
-                        if command -v gh >/dev/null 2>&1; then
-                            gh release create "\$RELEASE_TAG" \\
-                                --title "${SERVICE_NAME} v${IMAGE_TAG}" \\
-                                --notes-file release-notes.md \\
-                                --repo ThomasBrueck/circle-guard-public || true
-                        else
-                            echo "gh CLI no disponible — Release Notes guardadas como artefacto Jenkins"
-                        fi
-                    """
-                    archiveArtifacts artifacts: 'release-notes.md', allowEmptyArchive: true
+                    env.RELEASE_TAG = "release/${SERVICE_NAME}/v${IMAGE_TAG}"
                 }
+                sh 'chmod +x scripts/generate-release-notes.sh && ./scripts/generate-release-notes.sh'
+                sh """
+                    git tag -a "${env.RELEASE_TAG}" \\
+                        -m "Production release ${SERVICE_NAME} v${IMAGE_TAG}" || true
+                    git push origin "${env.RELEASE_TAG}" || true
+                    if command -v gh >/dev/null 2>&1; then
+                        gh release create "${env.RELEASE_TAG}" \\
+                            --title "${SERVICE_NAME} v${IMAGE_TAG}" \\
+                            --notes-file release-notes.md \\
+                            --repo ThomasBrueck/circle-guard-public || true
+                    else
+                        echo "gh CLI no disponible - Release Notes guardadas como artefacto Jenkins"
+                    fi
+                """
+                archiveArtifacts artifacts: 'release-notes.md', allowEmptyArchive: true
             }
         }
     }
