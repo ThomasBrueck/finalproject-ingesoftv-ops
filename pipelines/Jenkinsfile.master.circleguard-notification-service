@@ -207,7 +207,7 @@ NOTES_EOF
                         if [ -n "\$FEATS" ]; then
                             echo "## Nuevas Funcionalidades" >> release-notes.md
                             echo "\$LOG" | grep '|feat:' | while IFS='|' read hash msg author date; do
-                                echo "- \$msg (\`\$hash\` - \$author, \$date)" >> release-notes.md
+                                echo "- \$msg (\$hash - \$author, \$date)" >> release-notes.md
                             done
                             echo "" >> release-notes.md
                         fi
@@ -217,7 +217,7 @@ NOTES_EOF
                         if [ -n "\$FIXES" ]; then
                             echo "## Correcciones de Bugs" >> release-notes.md
                             echo "\$LOG" | grep '|fix:' | while IFS='|' read hash msg author date; do
-                                echo "- \$msg (\`\$hash\` - \$author, \$date)" >> release-notes.md
+                                echo "- \$msg (\$hash - \$author, \$date)" >> release-notes.md
                             done
                             echo "" >> release-notes.md
                         fi
@@ -227,7 +227,7 @@ NOTES_EOF
                         if [ -n "\$PERFS" ]; then
                             echo "## Mejoras de Rendimiento" >> release-notes.md
                             echo "\$LOG" | grep '|perf:' | while IFS='|' read hash msg author date; do
-                                echo "- \$msg (\`\$hash\` - \$author, \$date)" >> release-notes.md
+                                echo "- \$msg (\$hash - \$author, \$date)" >> release-notes.md
                             done
                             echo "" >> release-notes.md
                         fi
@@ -237,7 +237,7 @@ NOTES_EOF
                         if [ -n "\$MAINT" ]; then
                             echo "## Mantenimiento y Refactorizacion" >> release-notes.md
                             echo "\$LOG" | grep -E '\|(chore|refactor|docs|ci|build|style|test):' | while IFS='|' read hash msg author date; do
-                                echo "- \$msg (\`\$hash\` - \$author, \$date)" >> release-notes.md
+                                echo "- \$msg (\$hash - \$author, \$date)" >> release-notes.md
                             done
                             echo "" >> release-notes.md
                         fi
@@ -245,7 +245,7 @@ NOTES_EOF
                         # Todos los cambios
                         echo "## Todos los Cambios" >> release-notes.md
                         echo "\$LOG" | while IFS='|' read hash msg author date; do
-                            echo "- [\`\$hash\`] \$msg — \$author (\$date)" >> release-notes.md
+                            echo "- [\$hash] \$msg — \$author (\$date)" >> release-notes.md
                         done
 
                         echo ""
