@@ -1,17 +1,6 @@
-resource "kubernetes_namespace" "dev" {
-  metadata {
-    name = "dev"
-  }
-}
-
-resource "kubernetes_namespace" "stage" {
-  metadata {
-    name = "stage"
-  }
-}
-
-resource "kubernetes_namespace" "prod" {
-  metadata {
-    name = "prod"
-  }
-}
+# ==============================================================================
+# ARCHIVO LEGADO - YA NO SE USA
+# ==============================================================================
+# Los namespaces de Kubernetes ahora son creados por el módulo:
+#   modules/kubernetes_services/main.tf
+# Este archivo se mantiene vacío para no romper la raíz del proyecto.

@@ -1,0 +1,15 @@
+# ==============================================================================
+# CircleGuard - Backend de Estado Remoto para PROD
+# ==============================================================================
+# NOTA: Reemplaza "storage_account_name" con el nombre generado
+# automáticamente por el script 'bootstrap-backend.sh'.
+# ==============================================================================
+
+terraform {
+  backend "azurerm" {
+    resource_group_name  = "circleguard-tfstate-rg"
+    storage_account_name = "circleguardtfstatedev" # <- REEMPLAZAR CON TU VALOR DE BOOTSTRAP
+    container_name       = "tfstate"
+    key                  = "prod.terraform.tfstate"
+  }
+}

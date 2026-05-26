@@ -18,10 +18,12 @@ spec:
       labels:
         app: circleguard-notification-service
     spec:
+      imagePullSecrets:
+      - name: acr-secret
       containers:
       - name: circleguard-notification-service
-        image: circle-guard/circleguard-notification-service:latest
-        imagePullPolicy: IfNotPresent
+        image: circleguardacr.azurecr.io/circle-guard/circleguard-notification-service:latest
+        imagePullPolicy: Always
         ports:
         - containerPort: 8082
         resources:
@@ -48,9 +50,9 @@ spec:
         - name: SPRING_PROFILES_ACTIVE
           value: "staging"
         - name: SPRING_KAFKA_BOOTSTRAP_SERVERS
-          value: "host.minikube.internal:9092"
+          value: "kafka-dev.dev.svc.cluster.local:9092"
         - name: SPRING_MAIL_HOST
-          value: "host.minikube.internal"
+          value: "localhost"
         - name: AUTH_API_URL
           value: "http://circleguard-auth-service.stage.svc.cluster.local"
         - name: JWT_SECRET
