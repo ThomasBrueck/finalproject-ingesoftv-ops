@@ -12,7 +12,7 @@ variable "ssh_public_key" {
 
 variable "vm_size" {
   type        = string
-  default     = "Standard_B2ms"
+  default     = "Standard_D2s_v3"
   description = "Tamaño de la VM en DEV"
 }
 

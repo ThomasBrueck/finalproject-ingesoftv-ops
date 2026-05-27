@@ -5,7 +5,7 @@ variable "environment" {
 
 variable "location" {
   type        = string
-  default     = "eastus"
+  default     = "eastus2"
   description = "Región de Azure donde se desplegarán los recursos"
 }
 
