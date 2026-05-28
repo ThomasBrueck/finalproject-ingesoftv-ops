@@ -76,16 +76,20 @@ resource "helm_release" "kafka" {
   name       = "kafka-${each.key}"
   repository = "oci://registry-1.docker.io/bitnamicharts"
   chart      = "kafka"
-  version    = "29.3.2"
   namespace  = kubernetes_namespace.namespaces[each.key].metadata[0].name
   wait       = true
   timeout    = 900  # 15 minutos — Kafka tarda más que el default de 5 min
 
-  # Bitnami movió sus imágenes de docker.io a ghcr.io en 2024
+  # Forzamos GHCR.io porque Docker Hub eliminó las imágenes gratuitas de Bitnami
   set {
     name  = "image.registry"
     value = "ghcr.io"
   }
+  set {
+    name  = "image.repository"
+    value = "bitnami/kafka"
+  }
+
   set {
     name  = "replicaCount"
     value = "1"
