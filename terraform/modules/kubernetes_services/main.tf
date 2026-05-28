@@ -79,13 +79,19 @@ resource "helm_release" "kafka" {
   version    = "29.3.2"
   namespace  = kubernetes_namespace.namespaces[each.key].metadata[0].name
   wait       = true
+  timeout    = 900  # 15 minutos — Kafka tarda más que el default de 5 min
 
+  # Bitnami movió sus imágenes de docker.io a ghcr.io en 2024
   set {
-    name  = "image.repository"
-    value = "bitnamilegacy/kafka"
+    name  = "image.registry"
+    value = "ghcr.io"
   }
   set {
     name  = "replicaCount"
+    value = "1"
+  }
+  set {
+    name  = "controller.replicaCount"
     value = "1"
   }
 
