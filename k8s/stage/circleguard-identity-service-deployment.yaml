@@ -18,10 +18,12 @@ spec:
       labels:
         app: circleguard-identity-service
     spec:
+      imagePullSecrets:
+      - name: acr-secret
       containers:
       - name: circleguard-identity-service
-        image: circle-guard/circleguard-identity-service:latest
-        imagePullPolicy: IfNotPresent
+        image: circleguardacr.azurecr.io/circle-guard/circleguard-identity-service:latest
+        imagePullPolicy: Always
         ports:
         - containerPort: 8083
         resources:
@@ -48,7 +50,7 @@ spec:
         - name: SPRING_PROFILES_ACTIVE
           value: "staging"
         - name: SPRING_DATASOURCE_URL
-          value: "jdbc:postgresql://host.minikube.internal:5434/circleguard_identity"
+          value: "jdbc:postgresql://postgres-dev-postgresql.dev.svc.cluster.local:5432/circleguard_identity"
         - name: SPRING_DATASOURCE_USERNAME
           valueFrom:
             secretKeyRef:
