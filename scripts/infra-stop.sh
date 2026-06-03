@@ -21,7 +21,7 @@ NC='\033[0m' # sin color
 # ── Configuración del clúster ──────────────────────────────────────────────────
 CLUSTER_NAME="circleguard-aks"
 RESOURCE_GROUP="circleguard-core-rg"
-SUBSCRIPTION_ID="8cd4e2ee-fbca-46b3-a3f5-57efa772ac64"
+SUBSCRIPTION_ID="d8a5d968-36f5-4f95-99d0-38dabd31072e"
 
 echo ""
 echo -e "${BOLD}╔══════════════════════════════════════════╗${NC}"
