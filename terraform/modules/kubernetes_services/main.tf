@@ -1,25 +1,24 @@
 # ==============================================================================
-# Kubernetes Services (Helm Deployments for Multi-Tenant AKS)
+# Kubernetes Services - Servicios de infraestructura para UN ambiente
 # ==============================================================================
 
-# 1. Namespaces para cada ambiente (dev, stage, prod)
-resource "kubernetes_namespace" "namespaces" {
-  for_each = toset(var.environments)
-
+resource "kubernetes_namespace" "namespace" {
   metadata {
-    name = each.key
+    name = var.environment
+    labels = {
+      environment = var.environment
+      managed-by  = "terraform"
+    }
   }
 }
 
-# 2. PostgreSQL
+# PostgreSQL
 resource "helm_release" "postgres" {
-  for_each = toset(var.environments)
-
-  name       = "postgres-${each.key}"
+  name       = "postgres-${var.environment}"
   repository = "oci://registry-1.docker.io/bitnamicharts"
   chart      = "postgresql"
   version    = "18.6.7"
-  namespace  = kubernetes_namespace.namespaces[each.key].metadata[0].name
+  namespace  = kubernetes_namespace.namespace.metadata[0].name
   wait       = true
 
   set {
@@ -30,27 +29,23 @@ resource "helm_release" "postgres" {
     name  = "auth.database"
     value = "circleguard_auth"
   }
-
-  # Persistencia habilitada SOLO para stage y prod
   set {
     name  = "primary.persistence.enabled"
-    value = each.key == "dev" ? "false" : "true"
+    value = tostring(var.persistence_enabled)
   }
   set {
     name  = "primary.persistence.size"
-    value = "5Gi"
+    value = var.postgres_storage_size
   }
 }
 
-# 3. Redis
+# Redis
 resource "helm_release" "redis" {
-  for_each = toset(var.environments)
-
-  name       = "redis-${each.key}"
+  name       = "redis-${var.environment}"
   repository = "oci://registry-1.docker.io/bitnamicharts"
   chart      = "redis"
   version    = "25.5.3"
-  namespace  = kubernetes_namespace.namespaces[each.key].metadata[0].name
+  namespace  = kubernetes_namespace.namespace.metadata[0].name
   wait       = true
 
   set {
@@ -61,26 +56,22 @@ resource "helm_release" "redis" {
     name  = "auth.enabled"
     value = "false"
   }
-
-  # Persistencia habilitada SOLO para stage y prod
   set {
     name  = "master.persistence.enabled"
-    value = each.key == "dev" ? "false" : "true"
+    value = tostring(var.persistence_enabled)
   }
 }
 
-# 4. Kafka
+# Kafka
 resource "helm_release" "kafka" {
-  for_each = toset(var.environments)
-
-  name       = "kafka-${each.key}"
+  name       = "kafka-${var.environment}"
   repository = "oci://registry-1.docker.io/bitnamicharts"
   chart      = "kafka"
-  namespace  = kubernetes_namespace.namespaces[each.key].metadata[0].name
+  namespace  = kubernetes_namespace.namespace.metadata[0].name
   wait       = true
-  timeout    = 900  # 15 minutos — Kafka tarda más que el default de 5 min
+  timeout    = 900
 
-  # Forzamos GHCR.io porque Docker Hub eliminó las imágenes gratuitas de Bitnami
+  # Usamos GHCR.io porque Docker Hub eliminó imágenes gratuitas de Bitnami
   set {
     name  = "image.registry"
     value = "ghcr.io"
@@ -89,23 +80,20 @@ resource "helm_release" "kafka" {
     name  = "image.repository"
     value = "bitnami/kafka"
   }
-
   set {
     name  = "replicaCount"
-    value = "1"
+    value = tostring(var.kafka_replica_count)
   }
   set {
     name  = "controller.replicaCount"
-    value = "1"
+    value = tostring(var.kafka_replica_count)
   }
-
-  # Persistencia habilitada SOLO para stage y prod
   set {
     name  = "broker.persistence.enabled"
-    value = each.key == "dev" ? "false" : "true"
+    value = tostring(var.persistence_enabled)
   }
   set {
     name  = "controller.persistence.enabled"
-    value = each.key == "dev" ? "false" : "true"
+    value = tostring(var.persistence_enabled)
   }
 }
