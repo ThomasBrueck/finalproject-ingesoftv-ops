@@ -9,7 +9,7 @@ RESOURCE_GROUP_NAME="circleguard-tfstate-rg"
 LOCATION="eastus"
 STORAGE_ACCOUNT_NAME="circleguardtfstate$RANDOM" # El nombre debe ser único globalmente
 CONTAINER_NAME="tfstate"
-SUBSCRIPTION_ID="d8a5d968-36f5-4f95-99d0-38dabd31072e" # Azure for Students - Universidad Icesi
+SUBSCRIPTION_ID="8cd4e2ee-fbca-46b3-a3f5-57efa772ac64" # Azure for Students - Universidad Icesi
 
 echo "=== 1. Verificando sesión en Azure ==="
 if ! az account show --subscription "$SUBSCRIPTION_ID" &>/dev/null; then
