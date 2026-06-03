@@ -29,6 +29,17 @@ echo -e "${BOLD}║     CircleGuard — Encender servicios     ║${NC}"
 echo -e "${BOLD}╚══════════════════════════════════════════╝${NC}"
 echo ""
 
+# ── 0. Verificar que Azure CLI está instalado ─────────────────────────────────
+if ! command -v az &>/dev/null; then
+    echo -e "${RED}✗ Azure CLI no está instalado.${NC}"
+    echo ""
+    echo "  Instálalo con este comando y vuelve a ejecutar el script:"
+    echo ""
+    echo -e "  ${BOLD}curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash${NC}"
+    echo ""
+    exit 1
+fi
+
 # ── 1. Verificar sesión en Azure ───────────────────────────────────────────────
 echo -e "${BLUE}[1/4]${NC} Verificando sesión en Azure..."
 
