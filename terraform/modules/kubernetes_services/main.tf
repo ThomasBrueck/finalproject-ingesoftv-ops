@@ -71,6 +71,21 @@ resource "helm_release" "kafka" {
   wait       = true
   timeout    = 900
 
+  # Bitnami dejó de publicar imágenes nuevas en Docker Hub — ghcr.io es el
+  # mirror oficial. allowInsecureImages omite la verificación de registro.
+  set {
+    name  = "image.registry"
+    value = "ghcr.io"
+  }
+  set {
+    name  = "image.repository"
+    value = "bitnami/kafka"
+  }
+  set {
+    name  = "global.security.allowInsecureImages"
+    value = "true"
+  }
+
   set {
     name  = "replicaCount"
     value = tostring(var.kafka_replica_count)
