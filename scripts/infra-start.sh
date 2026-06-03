@@ -8,7 +8,6 @@
 #
 # Uso: ./scripts/infra-start.sh
 # ==============================================================================
-set -e
 
 # ── Colores para los mensajes ──────────────────────────────────────────────────
 RED='\033[0;31m'
@@ -55,11 +54,15 @@ echo ""
 # ── 2. Verificar estado actual del clúster ─────────────────────────────────────
 echo -e "${BLUE}[2/4]${NC} Verificando estado del clúster..."
 
-CURRENT_STATE=$(az aks show \
-    --name "$CLUSTER_NAME" \
-    --resource-group "$RESOURCE_GROUP" \
-    --query "powerState.code" \
-    --output tsv 2>/dev/null || echo "NotFound")
+get_state() {
+    az aks show \
+        --name "$CLUSTER_NAME" \
+        --resource-group "$RESOURCE_GROUP" \
+        --query "powerState.code" \
+        --output tsv 2>/dev/null || echo "NotFound"
+}
+
+CURRENT_STATE=$(get_state)
 
 if [ "$CURRENT_STATE" = "NotFound" ]; then
     echo -e "${RED}✗ No se encontró el clúster '$CLUSTER_NAME'.${NC}"
@@ -78,18 +81,44 @@ if [ "$CURRENT_STATE" = "Running" ]; then
     exit 0
 fi
 
+# Si hay una operación de apagado en progreso, esperar a que termine
+if [ "$CURRENT_STATE" = "Stopping" ]; then
+    echo -e "${YELLOW}Hay una operación de apagado en progreso. Esperando que termine antes de encender...${NC}"
+    echo ""
+    while [ "$(get_state)" != "Stopped" ]; do
+        echo -ne "  Estado: $(get_state) — esperando que termine el apagado...\r"
+        sleep 10
+    done
+    echo ""
+    CURRENT_STATE="Stopped"
+fi
+
 echo -e "${GREEN}✓${NC} Clúster encontrado. Estado actual: ${YELLOW}$CURRENT_STATE${NC}"
 echo ""
 
 # ── 3. Encender el clúster ─────────────────────────────────────────────────────
-echo -e "${BLUE}[3/4]${NC} Encendiendo el clúster AKS (tarda ~5 minutos)..."
+echo -e "${BLUE}[3/4]${NC} Enviando orden de encendido a Azure..."
+echo ""
+echo -e "  ${YELLOW}Nota:${NC} puedes cerrar este script en cualquier momento."
+echo -e "  El encendido continúa en Azure aunque canceles aquí."
 echo ""
 
 az aks start \
     --name "$CLUSTER_NAME" \
     --resource-group "$RESOURCE_GROUP" \
-    --subscription "$SUBSCRIPTION_ID"
+    --subscription "$SUBSCRIPTION_ID" \
+    --no-wait
 
+echo -e "  Orden enviada. Esperando que el clúster esté listo..."
+echo ""
+
+# Pollear el estado hasta que esté corriendo
+while [ "$(get_state)" != "Running" ]; do
+    echo -ne "  Estado: $(get_state) — espera ~5 minutos...\r"
+    sleep 10
+done
+
+echo ""
 echo ""
 echo -e "${GREEN}✓${NC} Clúster encendido."
 echo ""
@@ -113,6 +142,6 @@ kubectl get pods --all-namespaces --no-headers 2>/dev/null \
     | awk '{printf "    %-12s %-40s %s\n", $1, $2, $4}' \
     || echo "    (kubectl no disponible en esta máquina)"
 echo ""
-echo -e "  Costo mientras esté encendido: ${YELLOW}~\$0.08 / hora (~\$60/mes)${NC}"
+echo -e "  Costo mientras esté encendido: ${YELLOW}~\$0.10 / hora (~\$70/mes)${NC}"
 echo -e "  Recuerda apagarlo al terminar: ${BOLD}./scripts/infra-stop.sh${NC}"
 echo ""
