@@ -71,15 +71,6 @@ resource "helm_release" "kafka" {
   wait       = true
   timeout    = 900
 
-  # Usamos GHCR.io porque Docker Hub eliminó imágenes gratuitas de Bitnami
-  set {
-    name  = "image.registry"
-    value = "ghcr.io"
-  }
-  set {
-    name  = "image.repository"
-    value = "bitnami/kafka"
-  }
   set {
     name  = "replicaCount"
     value = tostring(var.kafka_replica_count)
