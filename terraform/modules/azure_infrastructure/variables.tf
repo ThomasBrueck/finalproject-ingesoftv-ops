@@ -18,6 +18,6 @@ variable "acr_name" {
 
 variable "vm_size" {
   type        = string
-  default     = "Standard_B2ms"
+  default     = "Standard_D2s_v3"
   description = "Tamaño de las Máquinas Virtuales del Node Pool de AKS"
 }
