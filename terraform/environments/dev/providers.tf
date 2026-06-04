@@ -20,8 +20,8 @@ provider "azurerm" {
 }
 
 data "azurerm_kubernetes_cluster" "aks" {
-  name                = "circleguard-aks"
-  resource_group_name = "circleguard-core-rg"
+  name                = var.aks_cluster_name
+  resource_group_name = var.aks_resource_group
 }
 
 provider "kubernetes" {
