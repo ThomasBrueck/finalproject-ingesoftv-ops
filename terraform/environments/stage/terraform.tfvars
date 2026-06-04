@@ -10,3 +10,4 @@ environment           = "stage"
 persistence_enabled   = true
 postgres_storage_size = "5Gi"
 kafka_replica_count   = 1
+enable_kafka          = true

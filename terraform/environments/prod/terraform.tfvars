@@ -10,3 +10,4 @@ environment           = "prod"
 persistence_enabled   = true
 postgres_storage_size = "20Gi"
 kafka_replica_count   = 3
+enable_kafka          = true

@@ -62,8 +62,10 @@ resource "helm_release" "redis" {
   }
 }
 
-# Kafka
+# Kafka — deshabilitado en dev (imágenes Bitnami requieren auth en ghcr.io/docker.io)
 resource "helm_release" "kafka" {
+  count = var.enable_kafka ? 1 : 0
+
   name       = "kafka-${var.environment}"
   repository = "oci://registry-1.docker.io/bitnamicharts"
   chart      = "kafka"

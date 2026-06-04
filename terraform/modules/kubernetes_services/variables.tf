@@ -22,3 +22,9 @@ variable "kafka_replica_count" {
   type        = number
   description = "Número de réplicas del broker/controller de Kafka"
 }
+
+variable "enable_kafka" {
+  type        = bool
+  description = "Desplegar Kafka en este ambiente. En dev se deshabilita para ahorrar recursos y evitar problemas de acceso a imágenes"
+  default     = true
+}

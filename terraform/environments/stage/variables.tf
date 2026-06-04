@@ -18,6 +18,11 @@ variable "kafka_replica_count" {
   description = "Número de réplicas del broker/controller de Kafka"
 }
 
+variable "enable_kafka" {
+  type        = bool
+  description = "Desplegar Kafka en este ambiente"
+}
+
 variable "aks_cluster_name" {
   type        = string
   description = "Nombre del clúster AKS compartido"

@@ -10,3 +10,4 @@ environment           = "dev"
 persistence_enabled   = false
 postgres_storage_size = "1Gi"
 kafka_replica_count   = 1
+enable_kafka          = false

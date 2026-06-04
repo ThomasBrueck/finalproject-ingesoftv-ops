@@ -14,6 +14,6 @@ output "redis_release_name" {
 }
 
 output "kafka_release_name" {
-  value       = helm_release.kafka.name
-  description = "Nombre del Helm release de Kafka"
+  value       = var.enable_kafka ? helm_release.kafka[0].name : "kafka-disabled"
+  description = "Nombre del Helm release de Kafka (o 'kafka-disabled' si no está desplegado)"
 }
