@@ -39,7 +39,7 @@ pipeline {
             steps {
                 sh """
                     docker build \\
-                        -f services/${SERVICE_NAME}/Dockerfile \\
+                        -f app/services/${SERVICE_NAME}/Dockerfile \\
                         -t ${IMAGE_NAME}:${IMAGE_TAG} \\
                         --label "dev-commit=${env.DEV_COMMIT}" \\
                         --label "build-number=${IMAGE_TAG}" \\
@@ -58,7 +58,7 @@ pipeline {
             steps {
                 sh """
                     docker build --target builder \\
-                        -f services/${SERVICE_NAME}/Dockerfile \\
+                        -f app/services/${SERVICE_NAME}/Dockerfile \\
                         -t ${IMAGE_NAME}:builder-${IMAGE_TAG} \\
                         app/
                     docker rm -f test-runner-${IMAGE_TAG} 2>/dev/null || true
