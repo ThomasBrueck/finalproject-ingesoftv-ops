@@ -36,5 +36,24 @@ terraform.rc
 
 
 
+# Project assets not for version control
 Proyecto Final IngeSoft V.pdf
-finalproject-ingesoftv-dev
+
+# Dev repo clone (managed separately)
+finalproject-ingesoftv-dev/
+
+# Gradle build artifacts
+.gradle/
+build/
+*.class
+*.jar
+!gradle/wrapper/gradle-wrapper.jar
+
+# Jenkins workspace artifacts (app checkout during builds)
+app/
+
+# Release notes generated during pipeline
+release-notes.md
+
+# Test output artifacts
+*-output.txt
