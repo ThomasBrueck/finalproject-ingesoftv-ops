@@ -1,0 +1,407 @@
+pipeline {
+    agent any
+
+    parameters {
+        string(
+            name: 'DEV_REPO_BRANCH',
+            defaultValue: 'master',
+            description: 'Branch or commit SHA from the dev repo to build'
+        )
+    }
+
+    environment {
+        SERVICE_NAME = 'circleguard-notification-service'
+        SERVICE_PORT = '8082'
+        ACR_REGISTRY = 'circleguardacr.azurecr.io'
+        IMAGE_NAME   = 'circle-guard/circleguard-notification-service'
+        FULL_IMAGE   = 'circleguardacr.azurecr.io/circle-guard/circleguard-notification-service'
+        IMAGE_TAG    = "${env.BUILD_NUMBER}"
+    }
+
+    options {
+        buildDiscarder(logRotator(numToKeepStr: '10'))
+        timeout(time: 90, unit: 'MINUTES')
+        timestamps()
+        disableConcurrentBuilds()
+    }
+
+    stages {
+
+        // ── CI ────────────────────────────────────────────────────────────
+        stage('Checkout') {
+            steps {
+                checkout scm
+                dir('app') {
+                    git url: 'https://github.com/ThomasBrueck/circle-guard-public-dev',
+                        branch: "${params.DEV_REPO_BRANCH}"
+                }
+                script {
+                    env.DEV_COMMIT = sh(
+                        script: 'git -C app rev-parse --short HEAD',
+                        returnStdout: true
+                    ).trim()
+                    echo "DEV commit: ${env.DEV_COMMIT} | Build: #${IMAGE_TAG}"
+                }
+            }
+        }
+
+        stage('Build') {
+            steps {
+                sh """
+                    docker build \\
+                        --target builder \\
+                        -f app/services/${SERVICE_NAME}/Dockerfile \\
+                        -t ${IMAGE_NAME}:builder-${IMAGE_TAG} \\
+                        app/
+
+                    docker build \\
+                        -f app/services/${SERVICE_NAME}/Dockerfile \\
+                        -t ${IMAGE_NAME}:${IMAGE_TAG} \\
+                        --label "dev-commit=${env.DEV_COMMIT}" \\
+                        --label "build-number=${IMAGE_TAG}" \\
+                        app/
+                """
+            }
+        }
+
+        stage('Unit Tests') {
+            steps {
+                sh """
+                    docker volume create gradle-cache-${IMAGE_TAG} || true
+                    docker rm -f unit-${IMAGE_TAG} 2>/dev/null || true
+                    docker run --name unit-${IMAGE_TAG} \\
+                        -e SPRING_MAIN_LAZY_INITIALIZATION=true \\
+                        -e SPRING_DATASOURCE_HIKARI_INITIALIZATION_FAIL_TIMEOUT=0 \\
+                        -e MANAGEMENT_HEALTH_DATASOURCE_ENABLED=false \\
+                        -e MANAGEMENT_HEALTH_LDAP_ENABLED=false \\
+                        -e MANAGEMENT_HEALTH_KAFKA_ENABLED=false \\
+                        -e MANAGEMENT_HEALTH_REDIS_ENABLED=false \\
+                        -e MANAGEMENT_HEALTH_NEO4J_ENABLED=false \\
+                        -e SPRING_KAFKA_LISTENER_MISSING_TOPICS_FATAL=false \\
+                        -v gradle-cache-${IMAGE_TAG}:/root/.gradle \\
+                        ${IMAGE_NAME}:builder-${IMAGE_TAG} \\
+                        ./gradlew :services:${SERVICE_NAME}:test --no-daemon; TEST_EXIT=\$?
+                    mkdir -p test-results
+                    docker cp unit-${IMAGE_TAG}:/app/services/${SERVICE_NAME}/build/test-results/test/. \\
+                        test-results/ || true
+                    docker rm unit-${IMAGE_TAG} || true
+                    exit \$TEST_EXIT
+                """
+            }
+            post {
+                always {
+                    junit allowEmptyResults: true, testResults: 'test-results/**/*.xml'
+                }
+            }
+        }
+
+        stage('SonarQube Analysis') {
+            steps {
+                withCredentials([
+                    string(credentialsId: 'sonar-token',    variable: 'SONAR_TOKEN'),
+                    string(credentialsId: 'sonar-host-url', variable: 'SONAR_HOST_URL')
+                ]) {
+                    sh """
+                        # Extract compiled bytecode from builder image for full Java analysis
+                        EXTRACTOR=sonar-ext-${IMAGE_TAG}
+                        docker rm -f \${EXTRACTOR} 2>/dev/null || true
+                        docker create --name \${EXTRACTOR} ${IMAGE_NAME}:builder-${IMAGE_TAG} sh
+                        mkdir -p sonar-classes
+                        docker cp \${EXTRACTOR}:/app/services/${SERVICE_NAME}/build/classes/. \\
+                            sonar-classes/ || true
+                        docker rm \${EXTRACTOR}
+
+                        # sonar.qualitygate.wait=true blocks and fails if Quality Gate not met (CA2)
+                        docker run --rm --network host \\
+                            -e SONAR_HOST_URL="\${SONAR_HOST_URL}" \\
+                            -e SONAR_TOKEN="\${SONAR_TOKEN}" \\
+                            -v \$(pwd)/app:/usr/src \\
+                            -v \$(pwd)/sonar-classes:/usr/src/services/${SERVICE_NAME}/build/classes \\
+                            -v \$(pwd)/test-results:/usr/src/services/${SERVICE_NAME}/build/test-results/test \\
+                            sonarsource/sonar-scanner-cli:latest \\
+                                -Dsonar.projectKey=${SERVICE_NAME} \\
+                                -Dsonar.projectName="${SERVICE_NAME}" \\
+                                -Dsonar.sources=services/${SERVICE_NAME}/src/main/java \\
+                                -Dsonar.tests=services/${SERVICE_NAME}/src/test/java \\
+                                -Dsonar.java.binaries=services/${SERVICE_NAME}/build/classes \\
+                                -Dsonar.junit.reportPaths=services/${SERVICE_NAME}/build/test-results/test \\
+                                -Dsonar.qualitygate.wait=true
+
+                        rm -rf sonar-classes
+                    """
+                }
+            }
+        }
+
+        stage('Trivy Security Scan') {
+            steps {
+                sh """
+                    mkdir -p /tmp/.trivy-cache
+                    docker run --rm \\
+                        -v /var/run/docker.sock:/var/run/docker.sock \\
+                        -v /tmp/.trivy-cache:/root/.cache \\
+                        aquasec/trivy:latest image \\
+                            --exit-code 1 \\
+                            --severity CRITICAL,HIGH \\
+                            --ignore-unfixed \\
+                            --no-progress \\
+                            --format table \\
+                            ${IMAGE_NAME}:${IMAGE_TAG}
+                """
+            }
+        }
+
+        stage('Push to ACR') {
+            steps {
+                withCredentials([usernamePassword(
+                    credentialsId: 'acr-credentials',
+                    usernameVariable: 'ACR_USER',
+                    passwordVariable: 'ACR_PASS'
+                )]) {
+                    sh """
+                        docker login ${ACR_REGISTRY} -u \${ACR_USER} -p \${ACR_PASS}
+                        docker tag ${IMAGE_NAME}:${IMAGE_TAG} ${FULL_IMAGE}:${IMAGE_TAG}
+                        docker tag ${IMAGE_NAME}:${IMAGE_TAG} ${FULL_IMAGE}:${env.DEV_COMMIT}
+                        docker push ${FULL_IMAGE}:${IMAGE_TAG}
+                        docker push ${FULL_IMAGE}:${env.DEV_COMMIT}
+                        docker logout ${ACR_REGISTRY}
+                    """
+                }
+            }
+        }
+
+        // ── DEV — automatic ───────────────────────────────────────────────
+        stage('Deploy → DEV') {
+            steps {
+                withCredentials([file(credentialsId: 'aks-kubeconfig', variable: 'KUBECONFIG')]) {
+                    sh """
+                        kubectl apply -f k8s/dev/00-namespace.yaml
+                        kubectl apply -f k8s/dev/${SERVICE_NAME}-deployment.yaml
+                        kubectl set image deployment/${SERVICE_NAME} \\
+                            ${SERVICE_NAME}=${FULL_IMAGE}:${IMAGE_TAG} -n dev
+                        kubectl rollout status deployment/${SERVICE_NAME} -n dev --timeout=300s
+                    """
+                }
+            }
+        }
+
+        stage('Smoke Test DEV') {
+            steps {
+                withCredentials([file(credentialsId: 'aks-kubeconfig', variable: 'KUBECONFIG')]) {
+                    sh """
+                        SVC_IP=\$(kubectl get svc ${SERVICE_NAME} -n dev \\
+                            -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || true)
+                        [ -z "\${SVC_IP}" ] && SVC_IP=\$(kubectl get svc ${SERVICE_NAME} -n dev \\
+                            -o jsonpath='{.spec.clusterIP}')
+                        DEV_URL="http://\${SVC_IP}:${SERVICE_PORT}"
+                        echo "Smoke test DEV: \${DEV_URL}/actuator/health"
+                        for i in 1 2 3 4 5; do
+                            STATUS=\$(curl -sf -o /dev/null -w "%{http_code}" \\
+                                "\${DEV_URL}/actuator/health" 2>/dev/null || echo "000")
+                            { [ "\${STATUS}" = "200" ] || [ "\${STATUS}" = "204" ]; } && \\
+                                { echo "OK: HTTP \${STATUS}"; exit 0; }
+                            echo "Attempt \$i/5: HTTP \${STATUS} — retrying in 15s"; sleep 15
+                        done
+                        echo "FAIL: DEV service not healthy after 5 attempts"; exit 1
+                    """
+                }
+            }
+        }
+
+        // ── STAGE — automatic after DEV validation ────────────────────────
+        stage('Deploy → STAGE') {
+            steps {
+                withCredentials([
+                    file(credentialsId:   'aks-kubeconfig',         variable: 'KUBECONFIG'),
+                    string(credentialsId: 'stage-jwt-secret',       variable: 'JWT_SECRET'),
+                    string(credentialsId: 'stage-qr-secret',        variable: 'QR_SECRET'),
+                    usernamePassword(credentialsId: 'stage-db-credentials',
+                        usernameVariable: 'DB_USER',   passwordVariable: 'DB_PASS'),
+                    usernamePassword(credentialsId: 'stage-ldap-credentials',
+                        usernameVariable: 'LDAP_USER', passwordVariable: 'LDAP_PASS')
+                ]) {
+                    sh """
+                        kubectl apply -f k8s/stage/00-namespace.yaml
+
+                        kubectl create secret generic circleguard-stage-secrets \\
+                            --from-literal=JWT_SECRET="\${JWT_SECRET}" \\
+                            --from-literal=QR_SECRET="\${QR_SECRET}" \\
+                            --from-literal=DB_USERNAME="\${DB_USER}" \\
+                            --from-literal=DB_PASSWORD="\${DB_PASS}" \\
+                            --from-literal=LDAP_USERNAME="\${LDAP_USER}" \\
+                            --from-literal=LDAP_PASSWORD="\${LDAP_PASS}" \\
+                            -n stage --dry-run=client -o yaml | kubectl apply -f -
+
+                        kubectl apply -f k8s/stage/${SERVICE_NAME}-deployment.yaml
+                        kubectl set image deployment/${SERVICE_NAME} \\
+                            ${SERVICE_NAME}=${FULL_IMAGE}:${IMAGE_TAG} -n stage
+                        kubectl rollout status deployment/${SERVICE_NAME} -n stage --timeout=600s
+                    """
+                }
+            }
+        }
+
+        stage('Smoke Test STAGE') {
+            steps {
+                withCredentials([file(credentialsId: 'aks-kubeconfig', variable: 'KUBECONFIG')]) {
+                    sh """
+                        SVC_IP=\$(kubectl get svc ${SERVICE_NAME} -n stage \\
+                            -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || true)
+                        [ -z "\${SVC_IP}" ] && SVC_IP=\$(kubectl get svc ${SERVICE_NAME} -n stage \\
+                            -o jsonpath='{.spec.clusterIP}')
+                        STAGE_URL="http://\${SVC_IP}:${SERVICE_PORT}"
+                        echo "Smoke test STAGE: \${STAGE_URL}/actuator/health"
+                        for i in 1 2 3 4 5; do
+                            STATUS=\$(curl -sf -o /dev/null -w "%{http_code}" \\
+                                "\${STAGE_URL}/actuator/health" 2>/dev/null || echo "000")
+                            { [ "\${STATUS}" = "200" ] || [ "\${STATUS}" = "204" ]; } && \\
+                                { echo "OK: HTTP \${STATUS}"; exit 0; }
+                            echo "Attempt \$i/5: HTTP \${STATUS} — retrying in 15s"; sleep 15
+                        done
+                        echo "FAIL: STAGE service not healthy after 5 attempts"; exit 1
+                    """
+                }
+            }
+        }
+
+        stage('Integration Tests STAGE') {
+            steps {
+                sh """
+                    INT_COUNT=\$(find app/services/${SERVICE_NAME}/src/test \\
+                        -name '*IntegrationTest.java' 2>/dev/null | wc -l)
+                    if [ "\${INT_COUNT}" -eq 0 ]; then
+                        echo "No integration tests for ${SERVICE_NAME} — skipping"; exit 0
+                    fi
+                """
+                withCredentials([file(credentialsId: 'aks-kubeconfig', variable: 'KUBECONFIG')]) {
+                    sh """
+                        SVC_IP=\$(kubectl get svc ${SERVICE_NAME} -n stage \\
+                            -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || true)
+                        [ -z "\${SVC_IP}" ] && SVC_IP=\$(kubectl get svc ${SERVICE_NAME} -n stage \\
+                            -o jsonpath='{.spec.clusterIP}')
+                        STAGE_URL="http://\${SVC_IP}:${SERVICE_PORT}"
+                        docker rm -f int-stage-${IMAGE_TAG} 2>/dev/null || true
+                        docker run --name int-stage-${IMAGE_TAG} --network host \\
+                            -e TEST_BASE_URL="\${STAGE_URL}" \\
+                            -e SPRING_MAIN_LAZY_INITIALIZATION=true \\
+                            -e MANAGEMENT_HEALTH_DATASOURCE_ENABLED=false \\
+                            -v gradle-cache-${IMAGE_TAG}:/root/.gradle \\
+                            ${IMAGE_NAME}:builder-${IMAGE_TAG} \\
+                            ./gradlew :services:${SERVICE_NAME}:test \\
+                                --tests 'com.circleguard.*.integration.*' \\
+                                -Dtest.baseUrl="\${STAGE_URL}" --no-daemon; INT_EXIT=\$?
+                        mkdir -p integration-results
+                        docker cp int-stage-${IMAGE_TAG}:/app/services/${SERVICE_NAME}/build/test-results/test/. \\
+                            integration-results/ || true
+                        docker rm int-stage-${IMAGE_TAG} || true
+                        exit \$INT_EXIT
+                    """
+                }
+            }
+            post {
+                always {
+                    junit allowEmptyResults: true, testResults: 'integration-results/**/*.xml'
+                }
+            }
+        }
+
+        // ── PROD — manual approval required ───────────────────────────────
+        stage('Approve → PROD') {
+            steps {
+                timeout(time: 60, unit: 'MINUTES') {
+                    input(
+                        message:   "Deploy ${SERVICE_NAME} build #${IMAGE_TAG} (${env.DEV_COMMIT}) to PRODUCTION?",
+                        ok:        'Promote to Production',
+                        submitter: 'tech-lead,devops'
+                    )
+                }
+            }
+        }
+
+        stage('Deploy → PROD') {
+            steps {
+                withCredentials([
+                    file(credentialsId:   'aks-kubeconfig',        variable: 'KUBECONFIG'),
+                    string(credentialsId: 'prod-jwt-secret',       variable: 'JWT_SECRET'),
+                    string(credentialsId: 'prod-qr-secret',        variable: 'QR_SECRET'),
+                    usernamePassword(credentialsId: 'prod-db-credentials',
+                        usernameVariable: 'DB_USER',   passwordVariable: 'DB_PASS'),
+                    usernamePassword(credentialsId: 'prod-ldap-credentials',
+                        usernameVariable: 'LDAP_USER', passwordVariable: 'LDAP_PASS')
+                ]) {
+                    sh """
+                        kubectl apply -f k8s/production/00-namespace.yaml
+
+                        kubectl create secret generic circleguard-production-secrets \\
+                            --from-literal=JWT_SECRET="\${JWT_SECRET}" \\
+                            --from-literal=QR_SECRET="\${QR_SECRET}" \\
+                            --from-literal=DB_USERNAME="\${DB_USER}" \\
+                            --from-literal=DB_PASSWORD="\${DB_PASS}" \\
+                            --from-literal=LDAP_USERNAME="\${LDAP_USER}" \\
+                            --from-literal=LDAP_PASSWORD="\${LDAP_PASS}" \\
+                            -n production --dry-run=client -o yaml | kubectl apply -f -
+
+                        kubectl apply -f k8s/production/${SERVICE_NAME}-deployment.yaml
+                        kubectl set image deployment/${SERVICE_NAME} \\
+                            ${SERVICE_NAME}=${FULL_IMAGE}:${IMAGE_TAG} -n production
+                        kubectl rollout status deployment/${SERVICE_NAME} -n production --timeout=600s
+                    """
+                }
+            }
+        }
+
+        stage('Smoke Test PROD') {
+            steps {
+                withCredentials([file(credentialsId: 'aks-kubeconfig', variable: 'KUBECONFIG')]) {
+                    sh """
+                        SVC_IP=\$(kubectl get svc ${SERVICE_NAME} -n production \\
+                            -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || true)
+                        [ -z "\${SVC_IP}" ] && SVC_IP=\$(kubectl get svc ${SERVICE_NAME} -n production \\
+                            -o jsonpath='{.spec.clusterIP}')
+                        PROD_URL="http://\${SVC_IP}:${SERVICE_PORT}"
+                        echo "Smoke test PROD: \${PROD_URL}/actuator/health"
+                        for i in 1 2 3 4 5; do
+                            STATUS=\$(curl -sf -o /dev/null -w "%{http_code}" \\
+                                "\${PROD_URL}/actuator/health" 2>/dev/null || echo "000")
+                            { [ "\${STATUS}" = "200" ] || [ "\${STATUS}" = "204" ]; } && \\
+                                { echo "OK: HTTP \${STATUS}"; exit 0; }
+                            echo "Attempt \$i/5: HTTP \${STATUS} — retrying in 15s"; sleep 15
+                        done
+                        echo "FAIL: PROD service not healthy after 5 attempts"; exit 1
+                    """
+                }
+            }
+        }
+
+        stage('Release Notes & Tag') {
+            steps {
+                script {
+                    env.RELEASE_TAG = "${SERVICE_NAME}/v${IMAGE_TAG}"
+                }
+                sh """
+                    chmod +x scripts/generate-release-notes.sh
+                    ./scripts/generate-release-notes.sh
+                    git tag -a "${env.RELEASE_TAG}" \\
+                        -m "Production release: ${SERVICE_NAME} build #${IMAGE_TAG} (${env.DEV_COMMIT})" || true
+                    git push origin "${env.RELEASE_TAG}" || true
+                """
+                archiveArtifacts artifacts: 'release-notes.md', allowEmptyArchive: true
+            }
+        }
+    }
+
+    post {
+        always {
+            sh "docker rmi ${IMAGE_NAME}:builder-${IMAGE_TAG} 2>/dev/null || true"
+            sh "docker rmi ${IMAGE_NAME}:${IMAGE_TAG} 2>/dev/null || true"
+            sh "docker volume rm gradle-cache-${IMAGE_TAG} 2>/dev/null || true"
+            sh "rm -rf sonar-classes test-results integration-results 2>/dev/null || true"
+        }
+        failure {
+            echo "Pipeline FAILED: ${SERVICE_NAME} build #${IMAGE_TAG}"
+        }
+        success {
+            echo "Pipeline OK: ${SERVICE_NAME}:${IMAGE_TAG} (dev commit: ${env.DEV_COMMIT})"
+        }
+    }
+}

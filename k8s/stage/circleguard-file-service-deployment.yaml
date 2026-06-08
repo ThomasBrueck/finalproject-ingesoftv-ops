@@ -1,0 +1,70 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: circleguard-file-service
+  namespace: stage
+spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 0
+  selector:
+    matchLabels:
+      app: circleguard-file-service
+  template:
+    metadata:
+      labels:
+        app: circleguard-file-service
+    spec:
+      imagePullSecrets:
+      - name: acr-secret
+      containers:
+      - name: circleguard-file-service
+        image: circleguardacr.azurecr.io/circle-guard/circleguard-file-service:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8085
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        readinessProbe:
+          tcpSocket:
+            port: 8085
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          failureThreshold: 12
+        livenessProbe:
+          httpGet:
+            path: /actuator/health
+            port: 8085
+          initialDelaySeconds: 30
+          periodSeconds: 15
+          failureThreshold: 5
+        env:
+        - name: SPRING_PROFILES_ACTIVE
+          value: "staging"
+        - name: MANAGEMENT_HEALTH_DATASOURCE_ENABLED
+          value: "false"
+        - name: MANAGEMENT_HEALTH_DISKSPACE_ENABLED
+          value: "false"
+        - name: SPRING_MAIN_LAZY_INITIALIZATION
+          value: "true"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: circleguard-file-service
+  namespace: stage
+spec:
+  selector:
+    app: circleguard-file-service
+  type: NodePort
+  ports:
+  - port: 80
+    targetPort: 8085

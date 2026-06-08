@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: circleguard-file-service
+  namespace: dev
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: circleguard-file-service
+  template:
+    metadata:
+      labels:
+        app: circleguard-file-service
+    spec:
+      imagePullSecrets:
+      - name: acr-secret
+      containers:
+      - name: circleguard-file-service
+        image: circleguardacr.azurecr.io/circle-guard/circleguard-file-service:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8085
+        env:
+        - name: SPRING_PROFILES_ACTIVE
+          value: "dev"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: circleguard-file-service
+  namespace: dev
+spec:
+  selector:
+    app: circleguard-file-service
+  ports:
+  - port: 80
+    targetPort: 8085
