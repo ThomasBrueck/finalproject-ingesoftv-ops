@@ -40,7 +40,7 @@ on:
         default: master
 
 env:
-  ACR_REGISTRY: circleguardacr.azurecr.io
+  ACR_REGISTRY: circleguardacrcore.azurecr.io
   IMAGE_PREFIX: circle-guard
   AKS_CLUSTER: circleguard-aks
   AKS_RG: circleguard-core-rg
