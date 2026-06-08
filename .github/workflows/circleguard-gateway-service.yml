@@ -1,0 +1,19 @@
+name: "CI/CD — circleguard-gateway-service"
+
+on:
+  workflow_dispatch:
+    inputs:
+      dev-branch:
+        description: 'Branch del repo de desarrollo a construir'
+        required: false
+        default: master
+
+jobs:
+  pipeline:
+    uses: ./.github/workflows/_cicd-pipeline.yml
+    with:
+      service-name: circleguard-gateway-service
+      service-port: '8087'
+      dev-branch: ${{ inputs.dev-branch || 'master' }}
+      run-cd: true
+    secrets: inherit
