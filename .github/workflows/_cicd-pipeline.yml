@@ -1,0 +1,281 @@
+# ==============================================================================
+# CircleGuard — Pipeline CI/CD Reutilizable
+#
+# Uso: cada servicio tiene su propio workflow que llama este con sus parámetros.
+#
+# Secrets requeridos (configurar en GitHub → Settings → Secrets):
+#   AZURE_CREDENTIALS   — JSON del Service Principal de Azure
+#   ACR_USERNAME        — Usuario del ACR (o 'service-principal')
+#   ACR_PASSWORD        — Contraseña del ACR
+#   SONAR_TOKEN         — Token de SonarCloud
+#   DEV_REPO_TOKEN      — GitHub PAT con acceso al repo de desarrollo (si es privado)
+#
+# Variables requeridas (GitHub → Settings → Variables):
+#   DEV_REPO            — ej. TuOrg/finalproject-ingesoftv
+#   SONAR_ORGANIZATION  — slug de tu organización en sonarcloud.io
+#
+# GitHub Environments a crear (Settings → Environments):
+#   dev        — sin protección (deploy automático)
+#   stage      — sin protección (deploy automático)
+#   production — Required reviewers: tech-lead (deploy manual = CD CA2)
+# ==============================================================================
+
+name: CI/CD Pipeline (reusable)
+
+on:
+  workflow_call:
+    inputs:
+      service-name:
+        description: 'Nombre del microservicio (e.g. circleguard-auth-service)'
+        required: true
+        type: string
+      service-port:
+        description: 'Puerto del servicio (para health check)'
+        required: true
+        type: string
+      dev-branch:
+        description: 'Branch del repo de desarrollo a construir'
+        required: false
+        type: string
+        default: master
+
+env:
+  ACR_REGISTRY: circleguardacr.azurecr.io
+  IMAGE_PREFIX: circle-guard
+  AKS_CLUSTER: circleguard-aks
+  AKS_RG: circleguard-core-rg
+
+jobs:
+  # ─────────────────────────────────────────────────────────────────────────────
+  # CI — Build · Unit Tests · SonarCloud (CA1 + CA2) · Trivy · Push ACR
+  # ─────────────────────────────────────────────────────────────────────────────
+  ci:
+    name: CI — Build & Scan
+    runs-on: ubuntu-latest
+    outputs:
+      image-tag: ${{ steps.tag.outputs.tag }}
+
+    steps:
+      - name: Checkout ops repo (manifests k8s)
+        uses: actions/checkout@v4
+
+      - name: Checkout dev repo (código fuente)
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ vars.DEV_REPO }}
+          ref: ${{ inputs.dev-branch }}
+          token: ${{ secrets.DEV_REPO_TOKEN }}
+          path: app
+
+      - name: Set image tag
+        id: tag
+        run: echo "tag=${{ github.run_number }}" >> "$GITHUB_OUTPUT"
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: temurin
+          cache: gradle
+
+      - name: Unit Tests
+        working-directory: app
+        run: ./gradlew :services:${{ inputs.service-name }}:test --no-daemon
+
+      # CI CA1 + CA2: SonarCloud analiza y bloquea si Quality Gate no se cumple
+      - name: SonarCloud Analysis
+        working-directory: app
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ./gradlew :services:${{ inputs.service-name }}:sonarqube \
+            -Dsonar.organization=${{ vars.SONAR_ORGANIZATION }} \
+            -Dsonar.projectKey=${{ vars.SONAR_ORGANIZATION }}_${{ inputs.service-name }} \
+            -Dsonar.host.url=https://sonarcloud.io \
+            -Dsonar.qualitygate.wait=true \
+            --no-daemon
+
+      - name: Log in to ACR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.ACR_REGISTRY }}
+          username: ${{ secrets.ACR_USERNAME }}
+          password: ${{ secrets.ACR_PASSWORD }}
+
+      - name: Build & Push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: app
+          file: app/services/${{ inputs.service-name }}/Dockerfile
+          push: true
+          tags: |
+            ${{ env.ACR_REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ inputs.service-name }}:${{ steps.tag.outputs.tag }}
+            ${{ env.ACR_REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ inputs.service-name }}:latest
+
+      # CI CA1: Trivy bloquea si hay vulnerabilidades CRITICAL o HIGH sin fix
+      - name: Trivy Security Scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.ACR_REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ inputs.service-name }}:${{ steps.tag.outputs.tag }}
+          format: table
+          exit-code: '1'
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # CD DEV — automático (CD CA1 + CD CA3: namespace dev)
+  # ─────────────────────────────────────────────────────────────────────────────
+  deploy-dev:
+    name: Deploy → DEV
+    needs: ci
+    runs-on: ubuntu-latest
+    environment: dev
+
+    steps:
+      - name: Checkout ops repo
+        uses: actions/checkout@v4
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Set AKS context
+        uses: azure/aks-set-context@v3
+        with:
+          resource-group: ${{ env.AKS_RG }}
+          cluster-name: ${{ env.AKS_CLUSTER }}
+
+      - name: Deploy to DEV namespace
+        run: |
+          kubectl apply -f k8s/dev/00-namespace.yaml
+          kubectl apply -f k8s/dev/${{ inputs.service-name }}-deployment.yaml
+          kubectl set image deployment/${{ inputs.service-name }} \
+            ${{ inputs.service-name }}=${{ env.ACR_REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ inputs.service-name }}:${{ needs.ci.outputs.image-tag }} \
+            -n dev
+          kubectl rollout status deployment/${{ inputs.service-name }} -n dev --timeout=300s
+
+      - name: Smoke Test DEV
+        run: |
+          kubectl wait --for=condition=ready pod \
+            -l app=${{ inputs.service-name }} -n dev --timeout=120s
+          POD=$(kubectl get pod -l app=${{ inputs.service-name }} -n dev \
+            -o jsonpath='{.items[0].metadata.name}')
+          for i in $(seq 1 5); do
+            STATUS=$(kubectl exec "$POD" -n dev -- \
+              wget -qO- "http://localhost:${{ inputs.service-port }}/actuator/health" 2>/dev/null \
+              | python3 -c "import sys,json; print(json.load(sys.stdin).get('status','DOWN'))" 2>/dev/null \
+              || echo "DOWN")
+            [ "$STATUS" = "UP" ] && echo "DEV health OK" && exit 0
+            sleep 15
+          done
+          echo "Smoke test DEV FAILED" && exit 1
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # CD STAGE — automático después de DEV (CD CA1 + CD CA3: namespace stage)
+  # ─────────────────────────────────────────────────────────────────────────────
+  deploy-stage:
+    name: Deploy → STAGE
+    needs: [ci, deploy-dev]
+    runs-on: ubuntu-latest
+    environment: stage
+
+    steps:
+      - name: Checkout ops repo
+        uses: actions/checkout@v4
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Set AKS context
+        uses: azure/aks-set-context@v3
+        with:
+          resource-group: ${{ env.AKS_RG }}
+          cluster-name: ${{ env.AKS_CLUSTER }}
+
+      - name: Deploy to STAGE namespace
+        run: |
+          kubectl apply -f k8s/stage/00-namespace.yaml
+          kubectl apply -f k8s/stage/${{ inputs.service-name }}-deployment.yaml
+          kubectl set image deployment/${{ inputs.service-name }} \
+            ${{ inputs.service-name }}=${{ env.ACR_REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ inputs.service-name }}:${{ needs.ci.outputs.image-tag }} \
+            -n stage
+          kubectl rollout status deployment/${{ inputs.service-name }} -n stage --timeout=300s
+
+      - name: Smoke Test STAGE
+        run: |
+          kubectl wait --for=condition=ready pod \
+            -l app=${{ inputs.service-name }} -n stage --timeout=120s
+          POD=$(kubectl get pod -l app=${{ inputs.service-name }} -n stage \
+            -o jsonpath='{.items[0].metadata.name}')
+          for i in $(seq 1 5); do
+            STATUS=$(kubectl exec "$POD" -n stage -- \
+              wget -qO- "http://localhost:${{ inputs.service-port }}/actuator/health" 2>/dev/null \
+              | python3 -c "import sys,json; print(json.load(sys.stdin).get('status','DOWN'))" 2>/dev/null \
+              || echo "DOWN")
+            [ "$STATUS" = "UP" ] && echo "STAGE health OK" && exit 0
+            sleep 15
+          done
+          echo "Smoke test STAGE FAILED" && exit 1
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # CD PROD — aprobación manual requerida (CD CA2 + CD CA3: namespace production)
+  #
+  # Configura el Environment "production" en:
+  # GitHub → Settings → Environments → production → Required reviewers
+  # ─────────────────────────────────────────────────────────────────────────────
+  deploy-prod:
+    name: Deploy → PROD (aprobación manual)
+    needs: [ci, deploy-stage]
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - name: Checkout ops repo
+        uses: actions/checkout@v4
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Set AKS context
+        uses: azure/aks-set-context@v3
+        with:
+          resource-group: ${{ env.AKS_RG }}
+          cluster-name: ${{ env.AKS_CLUSTER }}
+
+      - name: Deploy to PRODUCTION namespace
+        run: |
+          kubectl apply -f k8s/production/00-namespace.yaml
+          kubectl apply -f k8s/production/${{ inputs.service-name }}-deployment.yaml
+          kubectl set image deployment/${{ inputs.service-name }} \
+            ${{ inputs.service-name }}=${{ env.ACR_REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ inputs.service-name }}:${{ needs.ci.outputs.image-tag }} \
+            -n production
+          kubectl rollout status deployment/${{ inputs.service-name }} -n production --timeout=300s
+
+      - name: Smoke Test PROD
+        run: |
+          kubectl wait --for=condition=ready pod \
+            -l app=${{ inputs.service-name }} -n production --timeout=120s
+          POD=$(kubectl get pod -l app=${{ inputs.service-name }} -n production \
+            -o jsonpath='{.items[0].metadata.name}')
+          for i in $(seq 1 5); do
+            STATUS=$(kubectl exec "$POD" -n production -- \
+              wget -qO- "http://localhost:${{ inputs.service-port }}/actuator/health" 2>/dev/null \
+              | python3 -c "import sys,json; print(json.load(sys.stdin).get('status','DOWN'))" 2>/dev/null \
+              || echo "DOWN")
+            [ "$STATUS" = "UP" ] && echo "PROD health OK" && exit 0
+            sleep 15
+          done
+          echo "Smoke test PROD FAILED" && exit 1
+
+      - name: Tag release
+        run: |
+          git config user.email "github-actions@github.com"
+          git config user.name "GitHub Actions"
+          git tag "release/${{ inputs.service-name }}-${{ needs.ci.outputs.image-tag }}" || true
+          git push origin "release/${{ inputs.service-name }}-${{ needs.ci.outputs.image-tag }}" || true

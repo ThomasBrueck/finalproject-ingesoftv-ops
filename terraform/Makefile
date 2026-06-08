@@ -13,7 +13,7 @@ ENVS       := dev stage prod
 ENV_DIR    = environments/$(ENV)
 TFVARS     = $(ENV_DIR)/terraform.tfvars
 
-.PHONY: help init plan apply destroy validate fmt core-init core-plan core-apply tools-init tools-plan tools-apply tools-destroy
+.PHONY: help init plan apply destroy validate fmt core-init core-plan core-apply
 
 help:
 	@echo ""
@@ -75,22 +75,3 @@ core-plan:
 
 core-apply:
 	terraform -chdir=environments/core apply
-
-# VM de Jenkins + SonarQube (encender/apagar con infra-start/stop)
-# Requiere: export TF_VAR_ssh_public_key="$(cat ~/.ssh/id_rsa.pub)"
-tools-init:
-	terraform -chdir=environments/tools init
-
-tools-plan:
-	terraform -chdir=environments/tools plan -var-file=terraform.tfvars
-
-tools-apply:
-	@echo "==> Creando VM de Jenkins. Tardará ~5 minutos en estar lista."
-	terraform -chdir=environments/tools apply -var-file=terraform.tfvars
-	@echo ""
-	@echo "  La VM arranca Jenkins y SonarQube automáticamente via cloud-init."
-	@echo "  Espera ~8 minutos adicionales para que los contenedores estén listos."
-
-tools-destroy:
-	@echo "==> ELIMINANDO VM de Jenkins"
-	terraform -chdir=environments/tools destroy -var-file=terraform.tfvars

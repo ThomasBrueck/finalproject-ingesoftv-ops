@@ -1,0 +1,18 @@
+name: "CI/CD — circleguard-file-service"
+
+on:
+  workflow_dispatch:
+    inputs:
+      dev-branch:
+        description: 'Branch del repo de desarrollo a construir'
+        required: false
+        default: master
+
+jobs:
+  pipeline:
+    uses: ./.github/workflows/_cicd-pipeline.yml
+    with:
+      service-name: circleguard-file-service
+      service-port: '8085'
+      dev-branch: ${{ inputs.dev-branch || 'master' }}
+    secrets: inherit
