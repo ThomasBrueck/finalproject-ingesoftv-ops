@@ -43,6 +43,17 @@ on:
         required: false
         type: boolean
         default: true
+    secrets:
+      AZURE_CREDENTIALS:
+        required: true
+      ACR_USERNAME:
+        required: true
+      ACR_PASSWORD:
+        required: true
+      SONAR_TOKEN:
+        required: true
+      DEV_REPO_TOKEN:
+        required: true
 
 env:
   ACR_REGISTRY: circleguardacrcore.azurecr.io
