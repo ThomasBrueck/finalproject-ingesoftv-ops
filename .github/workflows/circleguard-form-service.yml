@@ -15,4 +15,5 @@ jobs:
       service-name: circleguard-form-service
       service-port: '8086'
       dev-branch: ${{ inputs.dev-branch || 'master' }}
+      run-cd: true
     secrets: inherit

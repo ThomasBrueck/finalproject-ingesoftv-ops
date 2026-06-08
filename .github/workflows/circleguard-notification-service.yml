@@ -15,4 +15,5 @@ jobs:
       service-name: circleguard-notification-service
       service-port: '8082'
       dev-branch: ${{ inputs.dev-branch || 'master' }}
+      run-cd: true
     secrets: inherit

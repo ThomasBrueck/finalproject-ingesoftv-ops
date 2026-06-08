@@ -15,4 +15,5 @@ jobs:
       service-name: circleguard-promotion-service
       service-port: '8088'
       dev-branch: ${{ inputs.dev-branch || 'master' }}
+      run-cd: true
     secrets: inherit

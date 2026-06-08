@@ -15,4 +15,5 @@ jobs:
       service-name: circleguard-gateway-service
       service-port: '8087'
       dev-branch: ${{ inputs.dev-branch || 'master' }}
+      run-cd: true
     secrets: inherit

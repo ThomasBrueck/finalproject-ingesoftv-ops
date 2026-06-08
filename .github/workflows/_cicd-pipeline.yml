@@ -38,6 +38,11 @@ on:
         required: false
         type: string
         default: master
+      run-cd:
+        description: 'Ejecutar deploy (false en PRs, true en push a master)'
+        required: false
+        type: boolean
+        default: true
 
 env:
   ACR_REGISTRY: circleguardacrcore.azurecr.io
@@ -129,6 +134,7 @@ jobs:
   deploy-dev:
     name: Deploy → DEV
     needs: ci
+    if: inputs.run-cd
     runs-on: ubuntu-latest
     environment: dev
 
@@ -178,6 +184,7 @@ jobs:
   deploy-stage:
     name: Deploy → STAGE
     needs: [ci, deploy-dev]
+    if: inputs.run-cd
     runs-on: ubuntu-latest
     environment: stage
 
@@ -230,6 +237,7 @@ jobs:
   deploy-prod:
     name: Deploy → PROD (aprobación manual)
     needs: [ci, deploy-stage]
+    if: inputs.run-cd
     runs-on: ubuntu-latest
     environment: production
 
