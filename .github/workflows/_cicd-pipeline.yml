@@ -89,12 +89,10 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          ./gradlew :services:${{ inputs.service-name }}:sonarqube \
+          ./gradlew sonarqube \
             -Dsonar.organization=${{ vars.SONAR_ORGANIZATION }} \
             -Dsonar.projectKey=${{ vars.SONAR_PROJECT_KEY }} \
             -Dsonar.host.url=https://sonarcloud.io \
-            -Dsonar.sources=services/${{ inputs.service-name }}/src/main \
-            -Dsonar.tests=services/${{ inputs.service-name }}/src/test \
             -Dsonar.qualitygate.wait=true \
             --no-daemon
 
