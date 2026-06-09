@@ -22,7 +22,7 @@ spec:
       - name: acr-secret
       containers:
       - name: circleguard-promotion-service
-        image: circleguardacr.azurecr.io/circle-guard/circleguard-promotion-service:latest
+        image: circleguardacrcore.azurecr.io/circle-guard/circleguard-promotion-service:latest
         imagePullPolicy: Always
         ports:
         - containerPort: 8088

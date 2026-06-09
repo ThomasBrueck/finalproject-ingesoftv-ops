@@ -22,7 +22,7 @@ spec:
       - name: acr-secret
       containers:
       - name: circleguard-dashboard-service
-        image: circleguardacr.azurecr.io/circle-guard/circleguard-dashboard-service:latest
+        image: circleguardacrcore.azurecr.io/circle-guard/circleguard-dashboard-service:latest
         imagePullPolicy: Always
         ports:
         - containerPort: 8084

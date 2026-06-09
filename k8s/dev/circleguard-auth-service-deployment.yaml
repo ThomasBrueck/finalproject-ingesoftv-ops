@@ -17,7 +17,7 @@ spec:
       - name: acr-secret
       containers:
       - name: circleguard-auth-service
-        image: circleguardacr.azurecr.io/circle-guard/circleguard-auth-service:latest
+        image: circleguardacrcore.azurecr.io/circle-guard/circleguard-auth-service:latest
         imagePullPolicy: Always
         ports:
         - containerPort: 8180
@@ -27,9 +27,9 @@ spec:
         - name: SPRING_DATASOURCE_URL
           value: "jdbc:postgresql://postgres-dev-postgresql.dev.svc.cluster.local:5432/circleguard_auth"
         - name: SPRING_DATASOURCE_USERNAME
-          value: "admin"
+          value: "postgres"
         - name: SPRING_DATASOURCE_PASSWORD
-          value: "password"
+          value: "supersecretpassword"
         - name: SPRING_LDAP_URLS
           value: "ldap://circleguard-ldap.dev.svc.cluster.local:389"
         - name: SPRING_LDAP_BASE
