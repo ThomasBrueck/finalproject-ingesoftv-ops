@@ -192,7 +192,7 @@ jobs:
           for i in $(seq 1 5); do
             STATUS=$(kubectl exec "$POD" -n dev -- \
               wget -qO- "http://localhost:${{ inputs.service-port }}/actuator/health" 2>/dev/null \
-              | python3 -c "import sys,json; print(json.load(sys.stdin).get('status','DOWN'))" 2>/dev/null \
+              | grep -o '"status":"[^"]*"' | cut -d'"' -f4 \
               || echo "DOWN")
             [ "$STATUS" = "UP" ] && echo "DEV health OK" && exit 0
             sleep 15
@@ -242,7 +242,7 @@ jobs:
           for i in $(seq 1 5); do
             STATUS=$(kubectl exec "$POD" -n stage -- \
               wget -qO- "http://localhost:${{ inputs.service-port }}/actuator/health" 2>/dev/null \
-              | python3 -c "import sys,json; print(json.load(sys.stdin).get('status','DOWN'))" 2>/dev/null \
+              | grep -o '"status":"[^"]*"' | cut -d'"' -f4 \
               || echo "DOWN")
             [ "$STATUS" = "UP" ] && echo "STAGE health OK" && exit 0
             sleep 15
@@ -295,7 +295,7 @@ jobs:
           for i in $(seq 1 5); do
             STATUS=$(kubectl exec "$POD" -n production -- \
               wget -qO- "http://localhost:${{ inputs.service-port }}/actuator/health" 2>/dev/null \
-              | python3 -c "import sys,json; print(json.load(sys.stdin).get('status','DOWN'))" 2>/dev/null \
+              | grep -o '"status":"[^"]*"' | cut -d'"' -f4 \
               || echo "DOWN")
             [ "$STATUS" = "UP" ] && echo "PROD health OK" && exit 0
             sleep 15
