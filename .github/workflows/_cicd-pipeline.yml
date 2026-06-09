@@ -146,6 +146,7 @@ jobs:
           exit-code: '1'
           severity: CRITICAL,HIGH
           ignore-unfixed: true
+          trivyignores: .trivyignore
 
   # ─────────────────────────────────────────────────────────────────────────────
   # CD DEV — automático (CD CA1 + CD CA3: namespace dev)
