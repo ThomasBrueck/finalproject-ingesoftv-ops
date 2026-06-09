@@ -114,7 +114,7 @@ jobs:
             -Dsonar.organization=${{ vars.SONAR_ORGANIZATION }}
             -Dsonar.projectKey=${{ vars.SONAR_PROJECT_KEY }}
             -Dsonar.sources=services
-            -Dsonar.java.binaries=**/build/classes/java/main,**/build/classes/kotlin/main
+            -Dsonar.java.binaries=**/build/classes/java/main
             -Dsonar.tests=services
             -Dsonar.test.inclusions=**/*Test.java,**/*Test.kt,**/*Tests.java,**/*Tests.kt
             -Dsonar.exclusions=**/build/**,**/.gradle/**
