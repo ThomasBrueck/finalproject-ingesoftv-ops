@@ -1,0 +1,89 @@
+# PostgreSQL 17 — imagen oficial Docker Hub (postgres:17, sin paywall)
+# Reemplaza el Helm chart de Bitnami que requiere suscripción desde ago-2025.
+# Service name = postgres-dev-postgresql para mantener compatibilidad con los manifests de los servicios.
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-dev-init
+  namespace: dev
+data:
+  init.sql: |
+    CREATE DATABASE circleguard_auth;
+    CREATE DATABASE circleguard_dashboard;
+    CREATE DATABASE circleguard_form;
+    CREATE DATABASE circleguard_identity;
+    CREATE DATABASE circleguard_promotion;
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-dev-data
+  namespace: dev
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres-dev-postgresql
+  namespace: dev
+  labels:
+    app: postgres-dev-postgresql
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres-dev-postgresql
+  template:
+    metadata:
+      labels:
+        app: postgres-dev-postgresql
+    spec:
+      containers:
+        - name: postgresql
+          image: docker.io/postgres:17
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_USER
+              value: "postgres"
+            - name: POSTGRES_PASSWORD
+              value: "supersecretpassword"
+            - name: POSTGRES_DB
+              value: "postgres"
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+            - name: init
+              mountPath: /docker-entrypoint-initdb.d
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", "postgres"]
+            initialDelaySeconds: 10
+            periodSeconds: 5
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: postgres-dev-data
+        - name: init
+          configMap:
+            name: postgres-dev-init
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-dev-postgresql
+  namespace: dev
+spec:
+  selector:
+    app: postgres-dev-postgresql
+  ports:
+    - port: 5432
+      targetPort: 5432
