@@ -104,18 +104,21 @@ jobs:
 
       # CI CA1 + CA2: SonarCloud analiza y bloquea si Quality Gate no se cumple
       - name: SonarCloud Analysis
-        working-directory: app
+        uses: SonarSource/sonarcloud-github-action@v3
         env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          ./gradlew sonar \
-            -Dsonar.organization=${{ vars.SONAR_ORGANIZATION }} \
-            -Dsonar.projectKey=${{ vars.SONAR_PROJECT_KEY }} \
-            -Dsonar.host.url=https://sonarcloud.io \
-            -Dsonar.qualitygate.wait=true \
-            -Dsonar.java.binaries=**/build/classes/java/main \
-            --no-daemon
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          projectBaseDir: app
+          args: >
+            -Dsonar.organization=${{ vars.SONAR_ORGANIZATION }}
+            -Dsonar.projectKey=${{ vars.SONAR_PROJECT_KEY }}
+            -Dsonar.sources=services
+            -Dsonar.java.binaries=**/build/classes/java/main,**/build/classes/kotlin/main
+            -Dsonar.tests=services
+            -Dsonar.test.inclusions=**/*Test.java,**/*Test.kt,**/*Tests.java,**/*Tests.kt
+            -Dsonar.exclusions=**/build/**,**/.gradle/**
+            -Dsonar.qualitygate.wait=true
 
       - name: Log in to ACR
         uses: docker/login-action@v3
