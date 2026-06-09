@@ -94,6 +94,10 @@ jobs:
           distribution: temurin
           cache: gradle
 
+      - name: Compile all services
+        working-directory: app
+        run: ./gradlew classes --no-daemon
+
       - name: Unit Tests
         working-directory: app
         run: ./gradlew :services:${{ inputs.service-name }}:test --no-daemon
@@ -110,6 +114,7 @@ jobs:
             -Dsonar.projectKey=${{ vars.SONAR_PROJECT_KEY }} \
             -Dsonar.host.url=https://sonarcloud.io \
             -Dsonar.qualitygate.wait=true \
+            -Dsonar.java.binaries=**/build/classes/java/main \
             --no-daemon
 
       - name: Log in to ACR
