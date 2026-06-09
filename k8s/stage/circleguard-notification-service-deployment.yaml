@@ -22,7 +22,7 @@ spec:
       - name: acr-secret
       containers:
       - name: circleguard-notification-service
-        image: circleguardacr.azurecr.io/circle-guard/circleguard-notification-service:latest
+        image: circleguardacrcore.azurecr.io/circle-guard/circleguard-notification-service:latest
         imagePullPolicy: Always
         ports:
         - containerPort: 8082

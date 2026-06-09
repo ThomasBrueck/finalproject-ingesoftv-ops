@@ -22,7 +22,7 @@ spec:
       - name: acr-secret
       containers:
       - name: circleguard-auth-service
-        image: circleguardacr.azurecr.io/circle-guard/circleguard-auth-service:latest
+        image: circleguardacrcore.azurecr.io/circle-guard/circleguard-auth-service:latest
         imagePullPolicy: Always
         ports:
         - containerPort: 8180
