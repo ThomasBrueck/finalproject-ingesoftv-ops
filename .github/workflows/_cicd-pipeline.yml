@@ -233,6 +233,19 @@ jobs:
       - name: Deploy to STAGE namespace
         run: |
           kubectl apply -f k8s/stage/00-namespace.yaml
+          kubectl create secret docker-registry acr-secret \
+            --docker-server=${{ env.ACR_REGISTRY }} \
+            --docker-username=${{ secrets.ACR_USERNAME }} \
+            --docker-password=${{ secrets.ACR_PASSWORD }} \
+            -n stage --dry-run=client -o yaml | kubectl apply -f -
+          kubectl create secret generic circleguard-stage-secrets \
+            --from-literal=DB_USERNAME=postgres \
+            --from-literal=DB_PASSWORD=supersecretpassword \
+            --from-literal=LDAP_USERNAME="cn=admin,dc=circleguard,dc=edu" \
+            --from-literal=LDAP_PASSWORD=admin \
+            --from-literal=JWT_SECRET="stage-jwt-secret-key-32-chars-long-1234" \
+            --from-literal=QR_SECRET="stage-qr-secret-key-32-chars-long-12345" \
+            -n stage --dry-run=client -o yaml | kubectl apply -f -
           kubectl apply -f k8s/stage/${{ inputs.service-name }}-deployment.yaml
           kubectl set image deployment/${{ inputs.service-name }} \
             ${{ inputs.service-name }}=${{ env.ACR_REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ inputs.service-name }}:${{ needs.ci.outputs.image-tag }} \
@@ -288,6 +301,19 @@ jobs:
       - name: Deploy to PRODUCTION namespace
         run: |
           kubectl apply -f k8s/production/00-namespace.yaml
+          kubectl create secret docker-registry acr-secret \
+            --docker-server=${{ env.ACR_REGISTRY }} \
+            --docker-username=${{ secrets.ACR_USERNAME }} \
+            --docker-password=${{ secrets.ACR_PASSWORD }} \
+            -n production --dry-run=client -o yaml | kubectl apply -f -
+          kubectl create secret generic circleguard-production-secrets \
+            --from-literal=DB_USERNAME=postgres \
+            --from-literal=DB_PASSWORD=supersecretpassword \
+            --from-literal=LDAP_USERNAME="cn=admin,dc=circleguard,dc=edu" \
+            --from-literal=LDAP_PASSWORD=admin \
+            --from-literal=JWT_SECRET="prod-jwt-secret-key-32-chars-long-123456" \
+            --from-literal=QR_SECRET="prod-qr-secret-key-32-chars-long-1234567" \
+            -n production --dry-run=client -o yaml | kubectl apply -f -
           kubectl apply -f k8s/production/${{ inputs.service-name }}-deployment.yaml
           kubectl set image deployment/${{ inputs.service-name }} \
             ${{ inputs.service-name }}=${{ env.ACR_REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ inputs.service-name }}:${{ needs.ci.outputs.image-tag }} \
