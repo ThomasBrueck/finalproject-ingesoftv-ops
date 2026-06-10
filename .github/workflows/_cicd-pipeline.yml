@@ -102,23 +102,17 @@ jobs:
         working-directory: app
         run: ./gradlew :services:${{ inputs.service-name }}:test --no-daemon
 
-      # CI CA1 + CA2: SonarCloud analiza via Gradle plugin (evita Docker build del runner)
+      # CI CA1 + CA2: SonarCloud via Gradle plugin (task 'sonar' desde v5.x)
       - name: SonarCloud Analysis
         working-directory: app
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
-          ./gradlew sonarqube --no-daemon \
+          ./gradlew sonar --no-daemon \
             -Dsonar.host.url=https://sonarcloud.io \
             -Dsonar.organization=${{ vars.SONAR_ORGANIZATION }} \
             -Dsonar.projectKey=${{ vars.SONAR_PROJECT_KEY }} \
-            -Dsonar.sources=services/${{ inputs.service-name }}/src/main \
-            -Dsonar.java.binaries=services/${{ inputs.service-name }}/build/classes/java/main \
-            -Dsonar.tests=services/${{ inputs.service-name }}/src/test \
-            -Dsonar.test.inclusions="**/*Test.java,**/*Test.kt,**/*Tests.java,**/*Tests.kt" \
-            -Dsonar.exclusions="**/build/**,**/.gradle/**" \
-            -Dsonar.coverage.jacoco.xmlReportPaths=services/${{ inputs.service-name }}/build/reports/jacoco/test/jacocoTestReport.xml \
             -Dsonar.qualitygate.wait=false
 
       - name: Log in to ACR
