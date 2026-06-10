@@ -183,19 +183,13 @@ jobs:
           kubectl apply -f k8s/dev/circleguard-ldap-deployment.yaml
           kubectl rollout status deployment/postgres-dev-postgresql -n dev --timeout=180s
           kubectl rollout status deployment/circleguard-ldap -n dev --timeout=120s
-          # Force-delete stuck terminating pods to unblock rolling update
-          kubectl get pods -l app=${{ inputs.service-name }} -n dev \
-            -o jsonpath='{range .items[?(@.metadata.deletionTimestamp)]}{.metadata.name}{"\n"}{end}' 2>/dev/null \
-            | xargs -r kubectl delete pod -n dev --grace-period=0 --force 2>/dev/null || true
+          kubectl delete deployment ${{ inputs.service-name }} -n dev --ignore-not-found=true
+          kubectl wait --for=delete deployment/${{ inputs.service-name }} -n dev --timeout=60s 2>/dev/null || true
           kubectl apply -f k8s/dev/${{ inputs.service-name }}-deployment.yaml
           kubectl set image deployment/${{ inputs.service-name }} \
             ${{ inputs.service-name }}=${{ env.ACR_REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ inputs.service-name }}:${{ needs.ci.outputs.image-tag }} \
             -n dev
-          kubectl rollout status deployment/${{ inputs.service-name }} -n dev --timeout=300s || {
-            echo "Rollout timeout — force-cleaning stuck pods and retrying..."
-            kubectl delete pods -l app=${{ inputs.service-name }} -n dev --grace-period=0 --force 2>/dev/null || true
-            kubectl rollout status deployment/${{ inputs.service-name }} -n dev --timeout=300s
-          }
+          kubectl rollout status deployment/${{ inputs.service-name }} -n dev --timeout=300s
 
   # ─────────────────────────────────────────────────────────────────────────────
   # CD STAGE — automático después de DEV (CD CA1 + CD CA3: namespace stage)
@@ -241,19 +235,13 @@ jobs:
             --from-literal=JWT_SECRET="stage-jwt-secret-key-32-chars-long-1234" \
             --from-literal=QR_SECRET="stage-qr-secret-key-32-chars-long-12345" \
             -n stage --dry-run=client -o yaml | kubectl apply -f -
-          # Force-delete stuck terminating pods to unblock rolling update
-          kubectl get pods -l app=${{ inputs.service-name }} -n stage \
-            -o jsonpath='{range .items[?(@.metadata.deletionTimestamp)]}{.metadata.name}{"\n"}{end}' 2>/dev/null \
-            | xargs -r kubectl delete pod -n stage --grace-period=0 --force 2>/dev/null || true
+          kubectl delete deployment ${{ inputs.service-name }} -n stage --ignore-not-found=true
+          kubectl wait --for=delete deployment/${{ inputs.service-name }} -n stage --timeout=60s 2>/dev/null || true
           kubectl apply -f k8s/stage/${{ inputs.service-name }}-deployment.yaml
           kubectl set image deployment/${{ inputs.service-name }} \
             ${{ inputs.service-name }}=${{ env.ACR_REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ inputs.service-name }}:${{ needs.ci.outputs.image-tag }} \
             -n stage
-          kubectl rollout status deployment/${{ inputs.service-name }} -n stage --timeout=300s || {
-            echo "Rollout timeout — force-cleaning stuck pods and retrying..."
-            kubectl delete pods -l app=${{ inputs.service-name }} -n stage --grace-period=0 --force 2>/dev/null || true
-            kubectl rollout status deployment/${{ inputs.service-name }} -n stage --timeout=300s
-          }
+          kubectl rollout status deployment/${{ inputs.service-name }} -n stage --timeout=300s
 
   # ─────────────────────────────────────────────────────────────────────────────
   # CD PROD — aprobación manual requerida (CD CA2 + CD CA3: namespace production)
@@ -302,19 +290,13 @@ jobs:
             --from-literal=JWT_SECRET="prod-jwt-secret-key-32-chars-long-123456" \
             --from-literal=QR_SECRET="prod-qr-secret-key-32-chars-long-1234567" \
             -n production --dry-run=client -o yaml | kubectl apply -f -
-          # Force-delete stuck terminating pods to unblock rolling update
-          kubectl get pods -l app=${{ inputs.service-name }} -n production \
-            -o jsonpath='{range .items[?(@.metadata.deletionTimestamp)]}{.metadata.name}{"\n"}{end}' 2>/dev/null \
-            | xargs -r kubectl delete pod -n production --grace-period=0 --force 2>/dev/null || true
+          kubectl delete deployment ${{ inputs.service-name }} -n production --ignore-not-found=true
+          kubectl wait --for=delete deployment/${{ inputs.service-name }} -n production --timeout=60s 2>/dev/null || true
           kubectl apply -f k8s/production/${{ inputs.service-name }}-deployment.yaml
           kubectl set image deployment/${{ inputs.service-name }} \
             ${{ inputs.service-name }}=${{ env.ACR_REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ inputs.service-name }}:${{ needs.ci.outputs.image-tag }} \
             -n production
-          kubectl rollout status deployment/${{ inputs.service-name }} -n production --timeout=300s || {
-            echo "Rollout timeout — force-cleaning stuck pods and retrying..."
-            kubectl delete pods -l app=${{ inputs.service-name }} -n production --grace-period=0 --force 2>/dev/null || true
-            kubectl rollout status deployment/${{ inputs.service-name }} -n production --timeout=300s
-          }
+          kubectl rollout status deployment/${{ inputs.service-name }} -n production --timeout=300s
 
       - name: Tag release
         run: |
