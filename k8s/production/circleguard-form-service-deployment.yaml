@@ -28,7 +28,7 @@ spec:
         - containerPort: 8086
         resources:
           requests:
-            memory: "256Mi"
+            memory: "128Mi"
             cpu: "1m"
           limits:
             memory: "512Mi"
@@ -80,8 +80,6 @@ spec:
           value: "false"
         - name: SPRING_KAFKA_LISTENER_AUTO_STARTUP
           value: "false"
-        - name: SPRING_AUTOCONFIGURE_EXCLUDE
-          value: "org.springframework.boot.autoconfigure.neo4j.Neo4jAutoConfiguration"
         - name: SPRING_DATASOURCE_HIKARI_INITIALIZATION_FAIL_TIMEOUT
           value: "0"
         - name: SPRING_KAFKA_LISTENER_MISSING_TOPICS_FATAL

@@ -22,8 +22,7 @@ spec:
         ports:
         - containerPort: 8180
         readinessProbe:
-          httpGet:
-            path: /actuator/health
+          tcpSocket:
             port: 8180
           initialDelaySeconds: 90
           periodSeconds: 10
@@ -47,12 +46,26 @@ spec:
           value: "admin"
         - name: MANAGEMENT_HEALTH_LDAP_ENABLED
           value: "false"
+        - name: MANAGEMENT_HEALTH_DATASOURCE_ENABLED
+          value: "false"
+        - name: MANAGEMENT_HEALTH_KAFKA_ENABLED
+          value: "false"
+        - name: MANAGEMENT_HEALTH_DISKSPACE_ENABLED
+          value: "false"
         - name: JWT_SECRET
           value: "my-super-secret-dev-key-32-chars-long-12345678"
         - name: QR_SECRET
           value: "my-qr-secret-key-for-dev-1234567890"
         - name: IDENTITY_SERVICE_URL
           value: "http://circleguard-identity-service"
+        - name: SPRING_MAIN_LAZY_INITIALIZATION
+          value: "true"
+        - name: SPRING_FLYWAY_ENABLED
+          value: "false"
+        - name: SPRING_DATASOURCE_HIKARI_INITIALIZATION_FAIL_TIMEOUT
+          value: "0"
+        - name: SPRING_KAFKA_LISTENER_AUTO_STARTUP
+          value: "false"
 ---
 apiVersion: v1
 kind: Service
