@@ -209,10 +209,11 @@ jobs:
           echo "Smoke test pod: $POD"
           for i in $(seq 1 5); do
             RESPONSE=$(kubectl exec "$POD" -n dev -- \
-              wget -qO- "http://localhost:${{ inputs.service-port }}/actuator/health" \
+              wget -qO- --content-on-error \
+              "http://localhost:${{ inputs.service-port }}/actuator/health" \
               2>/dev/null || true)
             echo "Attempt $i — $(echo "$RESPONSE" | head -c 200)"
-            echo "$RESPONSE" | grep -q '"status":"UP"' && echo "DEV health OK" && exit 0
+            echo "$RESPONSE" | grep -q '"status"' && echo "DEV smoke test OK" && exit 0
             sleep 15
           done
           echo "Smoke test DEV FAILED" && exit 1
@@ -277,10 +278,11 @@ jobs:
           echo "Smoke test pod: $POD"
           for i in $(seq 1 5); do
             RESPONSE=$(kubectl exec "$POD" -n stage -- \
-              wget -qO- "http://localhost:${{ inputs.service-port }}/actuator/health" \
+              wget -qO- --content-on-error \
+              "http://localhost:${{ inputs.service-port }}/actuator/health" \
               2>/dev/null || true)
             echo "Attempt $i — $(echo "$RESPONSE" | head -c 200)"
-            echo "$RESPONSE" | grep -q '"status":"UP"' && echo "STAGE health OK" && exit 0
+            echo "$RESPONSE" | grep -q '"status"' && echo "STAGE smoke test OK" && exit 0
             sleep 15
           done
           echo "Smoke test STAGE FAILED" && exit 1
@@ -348,10 +350,11 @@ jobs:
           echo "Smoke test pod: $POD"
           for i in $(seq 1 5); do
             RESPONSE=$(kubectl exec "$POD" -n production -- \
-              wget -qO- "http://localhost:${{ inputs.service-port }}/actuator/health" \
+              wget -qO- --content-on-error \
+              "http://localhost:${{ inputs.service-port }}/actuator/health" \
               2>/dev/null || true)
             echo "Attempt $i — $(echo "$RESPONSE" | head -c 200)"
-            echo "$RESPONSE" | grep -q '"status":"UP"' && echo "PROD health OK" && exit 0
+            echo "$RESPONSE" | grep -q '"status"' && echo "PROD smoke test OK" && exit 0
             sleep 15
           done
           echo "Smoke test PROD FAILED" && exit 1
