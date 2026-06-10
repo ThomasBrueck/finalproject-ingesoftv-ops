@@ -29,7 +29,7 @@ spec:
         resources:
           requests:
             memory: "256Mi"
-            cpu: "50m"
+            cpu: "1m"
           limits:
             memory: "512Mi"
             cpu: "500m"
@@ -79,6 +79,8 @@ spec:
           value: "false"
         - name: SPRING_MAIN_LAZY_INITIALIZATION
           value: "true"
+        - name: SPRING_FLYWAY_ENABLED
+          value: "false"
         - name: SPRING_KAFKA_LISTENER_AUTO_STARTUP
           value: "false"
         - name: SPRING_DATASOURCE_HIKARI_INITIALIZATION_FAIL_TIMEOUT
