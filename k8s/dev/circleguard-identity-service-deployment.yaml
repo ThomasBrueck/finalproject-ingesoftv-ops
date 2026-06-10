@@ -22,12 +22,11 @@ spec:
         ports:
         - containerPort: 8083
         readinessProbe:
-          httpGet:
-            path: /actuator/health
+          tcpSocket:
             port: 8083
-          initialDelaySeconds: 60
+          initialDelaySeconds: 90
           periodSeconds: 10
-          failureThreshold: 6
+          failureThreshold: 12
         env:
         - name: SPRING_PROFILES_ACTIVE
           value: "dev"
@@ -39,6 +38,16 @@ spec:
           value: "supersecretpassword"
         - name: JWT_SECRET
           value: "my-super-secret-dev-key-32-chars-long-12345678"
+        - name: MANAGEMENT_HEALTH_DATASOURCE_ENABLED
+          value: "false"
+        - name: MANAGEMENT_HEALTH_KAFKA_ENABLED
+          value: "false"
+        - name: MANAGEMENT_HEALTH_DISKSPACE_ENABLED
+          value: "false"
+        - name: SPRING_MAIN_LAZY_INITIALIZATION
+          value: "true"
+        - name: SPRING_DATASOURCE_HIKARI_INITIALIZATION_FAIL_TIMEOUT
+          value: "0"
 ---
 apiVersion: v1
 kind: Service
