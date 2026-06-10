@@ -49,7 +49,7 @@ spec:
         - name: SPRING_PROFILES_ACTIVE
           value: "staging"
         - name: SPRING_DATASOURCE_URL
-          value: "jdbc:postgresql://postgres-dev-postgresql.dev.svc.cluster.local:5432/circleguard_form"
+          value: "jdbc:postgresql://postgres-dev-postgresql.dev.svc.cluster.local:5432/circleguard_form?sslmode=disable"
         - name: SPRING_DATASOURCE_USERNAME
           valueFrom:
             secretKeyRef:
@@ -76,6 +76,8 @@ spec:
           value: "false"
         - name: SPRING_MAIN_LAZY_INITIALIZATION
           value: "true"
+        - name: SPRING_JPA_HIBERNATE_DDL_AUTO
+          value: "none"
         - name: SPRING_FLYWAY_ENABLED
           value: "false"
         - name: SPRING_KAFKA_LISTENER_AUTO_STARTUP
