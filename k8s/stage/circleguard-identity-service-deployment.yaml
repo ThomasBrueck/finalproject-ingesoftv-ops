@@ -79,6 +79,8 @@ spec:
           value: "false"
         - name: SPRING_MAIN_LAZY_INITIALIZATION
           value: "true"
+        - name: SPRING_AUTOCONFIGURE_EXCLUDE
+          value: "org.springframework.boot.autoconfigure.kafka.KafkaAutoConfiguration"
         - name: SPRING_DATASOURCE_HIKARI_INITIALIZATION_FAIL_TIMEOUT
           value: "0"
 ---
