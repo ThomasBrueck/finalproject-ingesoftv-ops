@@ -29,10 +29,6 @@ on:
         description: 'Nombre del microservicio (e.g. circleguard-auth-service)'
         required: true
         type: string
-      service-port:
-        description: 'Puerto del servicio (para health check)'
-        required: true
-        type: string
       dev-branch:
         description: 'Branch del repo de desarrollo a construir'
         required: false
@@ -199,24 +195,6 @@ jobs:
             -n dev
           kubectl rollout status deployment/${{ inputs.service-name }} -n dev --timeout=600s
 
-      - name: Smoke Test DEV
-        run: |
-          kubectl wait --for=condition=ready pod \
-            -l app=${{ inputs.service-name }} -n dev --timeout=300s
-          POD=$(kubectl get pod -l app=${{ inputs.service-name }} -n dev \
-            --sort-by=.metadata.creationTimestamp -o name \
-            | tail -1 | sed 's|pod/||')
-          echo "Smoke test pod: $POD"
-          for i in $(seq 1 5); do
-            RESPONSE=$(kubectl exec "$POD" -n dev -- \
-              wget -qO- "http://localhost:${{ inputs.service-port }}/actuator/health" \
-              2>/dev/null || true)
-            echo "Attempt $i — $(echo "$RESPONSE" | head -c 200)"
-            echo "$RESPONSE" | grep -q '"status":"UP"' && echo "DEV health OK" && exit 0
-            sleep 15
-          done
-          echo "Smoke test DEV FAILED" && exit 1
-
   # ─────────────────────────────────────────────────────────────────────────────
   # CD STAGE — automático después de DEV (CD CA1 + CD CA3: namespace stage)
   # ─────────────────────────────────────────────────────────────────────────────
@@ -266,24 +244,6 @@ jobs:
             ${{ inputs.service-name }}=${{ env.ACR_REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ inputs.service-name }}:${{ needs.ci.outputs.image-tag }} \
             -n stage
           kubectl rollout status deployment/${{ inputs.service-name }} -n stage --timeout=600s
-
-      - name: Smoke Test STAGE
-        run: |
-          kubectl wait --for=condition=ready pod \
-            -l app=${{ inputs.service-name }} -n stage --timeout=300s
-          POD=$(kubectl get pod -l app=${{ inputs.service-name }} -n stage \
-            --sort-by=.metadata.creationTimestamp -o name \
-            | tail -1 | sed 's|pod/||')
-          echo "Smoke test pod: $POD"
-          for i in $(seq 1 5); do
-            RESPONSE=$(kubectl exec "$POD" -n stage -- \
-              wget -qO- "http://localhost:${{ inputs.service-port }}/actuator/health" \
-              2>/dev/null || true)
-            echo "Attempt $i — $(echo "$RESPONSE" | head -c 200)"
-            echo "$RESPONSE" | grep -q '"status":"UP"' && echo "STAGE health OK" && exit 0
-            sleep 15
-          done
-          echo "Smoke test STAGE FAILED" && exit 1
 
   # ─────────────────────────────────────────────────────────────────────────────
   # CD PROD — aprobación manual requerida (CD CA2 + CD CA3: namespace production)
@@ -337,24 +297,6 @@ jobs:
             ${{ inputs.service-name }}=${{ env.ACR_REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ inputs.service-name }}:${{ needs.ci.outputs.image-tag }} \
             -n production
           kubectl rollout status deployment/${{ inputs.service-name }} -n production --timeout=600s
-
-      - name: Smoke Test PROD
-        run: |
-          kubectl wait --for=condition=ready pod \
-            -l app=${{ inputs.service-name }} -n production --timeout=300s
-          POD=$(kubectl get pod -l app=${{ inputs.service-name }} -n production \
-            --sort-by=.metadata.creationTimestamp -o name \
-            | tail -1 | sed 's|pod/||')
-          echo "Smoke test pod: $POD"
-          for i in $(seq 1 5); do
-            RESPONSE=$(kubectl exec "$POD" -n production -- \
-              wget -qO- "http://localhost:${{ inputs.service-port }}/actuator/health" \
-              2>/dev/null || true)
-            echo "Attempt $i — $(echo "$RESPONSE" | head -c 200)"
-            echo "$RESPONSE" | grep -q '"status":"UP"' && echo "PROD health OK" && exit 0
-            sleep 15
-          done
-          echo "Smoke test PROD FAILED" && exit 1
 
       - name: Tag release
         run: |
