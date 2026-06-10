@@ -85,6 +85,8 @@ spec:
             secretKeyRef:
               name: circleguard-stage-secrets
               key: QR_SECRET
+        - name: IDENTITY_SERVICE_URL
+          value: "http://circleguard-identity-service"
         - name: MANAGEMENT_HEALTH_DATASOURCE_ENABLED
           value: "false"
         - name: MANAGEMENT_HEALTH_LDAP_ENABLED
