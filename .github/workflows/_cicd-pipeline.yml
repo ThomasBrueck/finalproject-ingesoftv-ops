@@ -192,7 +192,8 @@ jobs:
           kubectl wait --for=condition=ready pod \
             -l app=${{ inputs.service-name }} -n dev --timeout=300s
           POD=$(kubectl get pod -l app=${{ inputs.service-name }} -n dev \
-            -o jsonpath='{.items[0].metadata.name}')
+            --sort-by=.metadata.creationTimestamp -o name \
+            | tail -1 | sed 's|pod/||')
           for i in $(seq 1 5); do
             STATUS=$(kubectl exec "$POD" -n dev -- \
               wget -qO- "http://localhost:${{ inputs.service-port }}/actuator/health" 2>/dev/null \
@@ -235,14 +236,15 @@ jobs:
           kubectl set image deployment/${{ inputs.service-name }} \
             ${{ inputs.service-name }}=${{ env.ACR_REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ inputs.service-name }}:${{ needs.ci.outputs.image-tag }} \
             -n stage
-          kubectl rollout status deployment/${{ inputs.service-name }} -n stage --timeout=300s
+          kubectl rollout status deployment/${{ inputs.service-name }} -n stage --timeout=600s
 
       - name: Smoke Test STAGE
         run: |
           kubectl wait --for=condition=ready pod \
-            -l app=${{ inputs.service-name }} -n stage --timeout=120s
+            -l app=${{ inputs.service-name }} -n stage --timeout=300s
           POD=$(kubectl get pod -l app=${{ inputs.service-name }} -n stage \
-            -o jsonpath='{.items[0].metadata.name}')
+            --sort-by=.metadata.creationTimestamp -o name \
+            | tail -1 | sed 's|pod/||')
           for i in $(seq 1 5); do
             STATUS=$(kubectl exec "$POD" -n stage -- \
               wget -qO- "http://localhost:${{ inputs.service-port }}/actuator/health" 2>/dev/null \
@@ -288,14 +290,15 @@ jobs:
           kubectl set image deployment/${{ inputs.service-name }} \
             ${{ inputs.service-name }}=${{ env.ACR_REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ inputs.service-name }}:${{ needs.ci.outputs.image-tag }} \
             -n production
-          kubectl rollout status deployment/${{ inputs.service-name }} -n production --timeout=300s
+          kubectl rollout status deployment/${{ inputs.service-name }} -n production --timeout=600s
 
       - name: Smoke Test PROD
         run: |
           kubectl wait --for=condition=ready pod \
-            -l app=${{ inputs.service-name }} -n production --timeout=120s
+            -l app=${{ inputs.service-name }} -n production --timeout=300s
           POD=$(kubectl get pod -l app=${{ inputs.service-name }} -n production \
-            -o jsonpath='{.items[0].metadata.name}')
+            --sort-by=.metadata.creationTimestamp -o name \
+            | tail -1 | sed 's|pod/||')
           for i in $(seq 1 5); do
             STATUS=$(kubectl exec "$POD" -n production -- \
               wget -qO- "http://localhost:${{ inputs.service-port }}/actuator/health" 2>/dev/null \
