@@ -70,8 +70,6 @@ spec:
           value: "0"
         - name: SPRING_KAFKA_LISTENER_AUTO_STARTUP
           value: "false"
-        - name: SPRING_AUTOCONFIGURE_EXCLUDE
-          value: "org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration,org.springframework.boot.autoconfigure.data.redis.RedisReactiveAutoConfiguration,org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration"
 ---
 apiVersion: v1
 kind: Service
