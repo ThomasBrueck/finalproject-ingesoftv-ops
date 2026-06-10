@@ -313,8 +313,13 @@ jobs:
              exit 1)
 
       # CD CA: tag SemVer automático sobre el código desplegado (SCRUM-33)
+      # Usa el GITHUB_TOKEN del run (con contents: write) para empujar el tag al
+      # repo dev. No bloquea el deploy si el push falla: el despliegue a prod ya
+      # fue exitoso en este punto.
       - name: Tag release (SemVer)
         working-directory: app
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           VERSION="v${{ needs.ci.outputs.version }}"
           TAG="${{ inputs.service-name }}/${VERSION}"
@@ -322,10 +327,13 @@ jobs:
           git config user.name "GitHub Actions"
           if git rev-parse "$TAG" >/dev/null 2>&1; then
             echo "El tag $TAG ya existe; no se recrea."
-          else
-            git tag -a "$TAG" -m "Release ${{ inputs.service-name }} ${VERSION} (deploy a producción)"
-            git push origin "$TAG"
+            exit 0
+          fi
+          git tag -a "$TAG" -m "Release ${{ inputs.service-name }} ${VERSION} (deploy a producción)"
+          if git push "https://x-access-token:${GH_TOKEN}@github.com/${{ vars.DEV_REPO }}.git" "$TAG"; then
             echo "Tag de release creado: $TAG"
+          else
+            echo "::warning::No se pudo crear el tag $TAG. El deploy a producción fue exitoso; revisa que el token tenga contents: write."
           fi
 
   # ─────────────────────────────────────────────────────────────────────────────
