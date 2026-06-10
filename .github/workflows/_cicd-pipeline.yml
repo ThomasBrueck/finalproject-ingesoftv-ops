@@ -186,7 +186,10 @@ jobs:
           kubectl delete deployment ${{ inputs.service-name }} -n dev --ignore-not-found=true
           kubectl wait --for=delete deployment/${{ inputs.service-name }} -n dev --timeout=60s 2>/dev/null || true
           kubectl apply -f k8s/dev/${{ inputs.service-name }}-deployment.yaml
-          kubectl rollout status deployment/${{ inputs.service-name }} -n dev --timeout=300s
+          kubectl rollout status deployment/${{ inputs.service-name }} -n dev --timeout=300s || \
+            (echo "=== POD DESCRIBE ===" && kubectl describe pod -l app=${{ inputs.service-name }} -n dev && \
+             echo "=== POD LOGS ===" && kubectl logs -l app=${{ inputs.service-name }} -n dev --tail=100 2>/dev/null || true && \
+             exit 1)
 
   # ─────────────────────────────────────────────────────────────────────────────
   # CD STAGE — automático después de DEV (CD CA1 + CD CA3: namespace stage)
@@ -235,7 +238,10 @@ jobs:
           kubectl delete deployment ${{ inputs.service-name }} -n stage --ignore-not-found=true
           kubectl wait --for=delete deployment/${{ inputs.service-name }} -n stage --timeout=60s 2>/dev/null || true
           kubectl apply -f k8s/stage/${{ inputs.service-name }}-deployment.yaml
-          kubectl rollout status deployment/${{ inputs.service-name }} -n stage --timeout=300s
+          kubectl rollout status deployment/${{ inputs.service-name }} -n stage --timeout=300s || \
+            (echo "=== POD DESCRIBE ===" && kubectl describe pod -l app=${{ inputs.service-name }} -n stage && \
+             echo "=== POD LOGS ===" && kubectl logs -l app=${{ inputs.service-name }} -n stage --tail=100 2>/dev/null || true && \
+             exit 1)
 
   # ─────────────────────────────────────────────────────────────────────────────
   # CD PROD — aprobación manual requerida (CD CA2 + CD CA3: namespace production)
