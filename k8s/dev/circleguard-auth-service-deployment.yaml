@@ -25,9 +25,9 @@ spec:
           httpGet:
             path: /actuator/health
             port: 8180
-          initialDelaySeconds: 60
+          initialDelaySeconds: 90
           periodSeconds: 10
-          failureThreshold: 6
+          failureThreshold: 12
         env:
         - name: SPRING_PROFILES_ACTIVE
           value: "dev"

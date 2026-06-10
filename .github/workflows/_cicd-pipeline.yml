@@ -177,16 +177,20 @@ jobs:
       - name: Deploy to DEV namespace
         run: |
           kubectl apply -f k8s/dev/00-namespace.yaml
+          kubectl apply -f k8s/dev/postgres-dev-postgresql.yaml
+          kubectl apply -f k8s/dev/circleguard-ldap-deployment.yaml
+          kubectl rollout status deployment/postgres-dev-postgresql -n dev --timeout=180s
+          kubectl rollout status deployment/circleguard-ldap -n dev --timeout=120s
           kubectl apply -f k8s/dev/${{ inputs.service-name }}-deployment.yaml
           kubectl set image deployment/${{ inputs.service-name }} \
             ${{ inputs.service-name }}=${{ env.ACR_REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ inputs.service-name }}:${{ needs.ci.outputs.image-tag }} \
             -n dev
-          kubectl rollout status deployment/${{ inputs.service-name }} -n dev --timeout=300s
+          kubectl rollout status deployment/${{ inputs.service-name }} -n dev --timeout=600s
 
       - name: Smoke Test DEV
         run: |
           kubectl wait --for=condition=ready pod \
-            -l app=${{ inputs.service-name }} -n dev --timeout=120s
+            -l app=${{ inputs.service-name }} -n dev --timeout=300s
           POD=$(kubectl get pod -l app=${{ inputs.service-name }} -n dev \
             -o jsonpath='{.items[0].metadata.name}')
           for i in $(seq 1 5); do
