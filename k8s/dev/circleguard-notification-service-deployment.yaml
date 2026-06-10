@@ -44,8 +44,8 @@ spec:
           value: "false"
         - name: SPRING_MAIN_LAZY_INITIALIZATION
           value: "true"
-        - name: SPRING_AUTOCONFIGURE_EXCLUDE
-          value: "org.springframework.boot.autoconfigure.kafka.KafkaAutoConfiguration"
+        - name: SPRING_KAFKA_LISTENER_AUTO_STARTUP
+          value: "false"
         - name: AUTH_API_URL
           value: "http://circleguard-auth-service.dev.svc.cluster.local"
         - name: JWT_SECRET

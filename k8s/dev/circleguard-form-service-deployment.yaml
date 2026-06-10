@@ -50,8 +50,8 @@ spec:
           value: "true"
         - name: SPRING_DATASOURCE_HIKARI_INITIALIZATION_FAIL_TIMEOUT
           value: "0"
-        - name: SPRING_AUTOCONFIGURE_EXCLUDE
-          value: "org.springframework.boot.autoconfigure.kafka.KafkaAutoConfiguration"
+        - name: SPRING_KAFKA_LISTENER_AUTO_STARTUP
+          value: "false"
 ---
 apiVersion: v1
 kind: Service
