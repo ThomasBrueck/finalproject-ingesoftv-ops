@@ -74,6 +74,9 @@ jobs:
     steps:
       - name: Checkout ops repo (manifests k8s)
         uses: actions/checkout@v4
+        with:
+          repository: ThomasBrueck/finalproject-ingesoftv-ops
+          ref: ${{ github.workflow_sha }}
 
       - name: Checkout dev repo (código fuente)
         uses: actions/checkout@v4
@@ -163,6 +166,9 @@ jobs:
     steps:
       - name: Checkout ops repo
         uses: actions/checkout@v4
+        with:
+          repository: ThomasBrueck/finalproject-ingesoftv-ops
+          ref: ${{ github.workflow_sha }}
 
       - name: Azure Login
         uses: azure/login@v2
@@ -219,6 +225,9 @@ jobs:
     steps:
       - name: Checkout ops repo
         uses: actions/checkout@v4
+        with:
+          repository: ThomasBrueck/finalproject-ingesoftv-ops
+          ref: ${{ github.workflow_sha }}
 
       - name: Azure Login
         uses: azure/login@v2
@@ -287,6 +296,9 @@ jobs:
     steps:
       - name: Checkout ops repo
         uses: actions/checkout@v4
+        with:
+          repository: ThomasBrueck/finalproject-ingesoftv-ops
+          ref: ${{ github.workflow_sha }}
 
       - name: Azure Login
         uses: azure/login@v2
