@@ -113,9 +113,9 @@ jobs:
           args: >
             -Dsonar.organization=${{ vars.SONAR_ORGANIZATION }}
             -Dsonar.projectKey=${{ vars.SONAR_PROJECT_KEY }}
-            -Dsonar.sources=services
-            -Dsonar.java.binaries=**/build/classes/java/main
-            -Dsonar.tests=services
+            -Dsonar.sources=services/${{ inputs.service-name }}/src/main
+            -Dsonar.java.binaries=services/${{ inputs.service-name }}/build/classes/java/main
+            -Dsonar.tests=services/${{ inputs.service-name }}/src/test
             -Dsonar.test.inclusions=**/*Test.java,**/*Test.kt,**/*Tests.java,**/*Tests.kt
             -Dsonar.exclusions=**/build/**,**/.gradle/**
             -Dsonar.coverage.jacoco.xmlReportPaths=services/${{ inputs.service-name }}/build/reports/jacoco/test/jacocoTestReport.xml
