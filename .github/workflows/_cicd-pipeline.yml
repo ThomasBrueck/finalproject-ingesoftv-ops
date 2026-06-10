@@ -65,7 +65,7 @@ jobs:
     name: CI — Build & Scan
     runs-on: ubuntu-latest
     outputs:
-      image-tag: ${{ steps.tag.outputs.tag }}
+      version: ${{ steps.semver.outputs.version }}
 
     steps:
       - name: Checkout ops repo (manifests k8s)
@@ -83,9 +83,14 @@ jobs:
           path: app
           fetch-depth: 0
 
-      - name: Set image tag
-        id: tag
-        run: echo "tag=${{ github.run_number }}" >> "$GITHUB_OUTPUT"
+      # CD CA: Versionado semántico automático (SCRUM-33)
+      # Calcula vMAJOR.MINOR.PATCH desde los Conventional Commits del servicio.
+      - name: Compute semantic version
+        id: semver
+        env:
+          SERVICE_NAME: ${{ inputs.service-name }}
+          APP_DIR: app
+        run: bash scripts/compute-semver.sh
 
       - name: Set up JDK 21
         uses: actions/setup-java@v4
@@ -134,14 +139,14 @@ jobs:
           file: app/services/${{ inputs.service-name }}/Dockerfile
           push: true
           tags: |
-            ${{ env.ACR_REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ inputs.service-name }}:${{ steps.tag.outputs.tag }}
+            ${{ env.ACR_REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ inputs.service-name }}:v${{ steps.semver.outputs.version }}
             ${{ env.ACR_REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ inputs.service-name }}:latest
 
       # CI CA1: Trivy bloquea si hay vulnerabilidades CRITICAL o HIGH sin fix
       - name: Trivy Security Scan
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ${{ env.ACR_REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ inputs.service-name }}:${{ steps.tag.outputs.tag }}
+          image-ref: ${{ env.ACR_REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ inputs.service-name }}:v${{ steps.semver.outputs.version }}
           format: table
           exit-code: '1'
           severity: CRITICAL,HIGH
@@ -263,6 +268,15 @@ jobs:
           repository: ThomasBrueck/finalproject-ingesoftv-ops
           ref: master
 
+      - name: Checkout dev repo (para tag de versión)
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ vars.DEV_REPO }}
+          ref: ${{ inputs.dev-branch }}
+          token: ${{ secrets.DEV_REPO_TOKEN }}
+          path: app
+          fetch-depth: 0
+
       - name: Azure Login
         uses: azure/login@v2
         with:
@@ -298,9 +312,18 @@ jobs:
              echo "=== POD LOGS ===" && kubectl logs -l app=${{ inputs.service-name }} -n production --previous --tail=100 2>/dev/null; kubectl logs -l app=${{ inputs.service-name }} -n production --tail=100 2>/dev/null || true && \
              exit 1)
 
-      - name: Tag release
+      # CD CA: tag SemVer automático sobre el código desplegado (SCRUM-33)
+      - name: Tag release (SemVer)
+        working-directory: app
         run: |
+          VERSION="v${{ needs.ci.outputs.version }}"
+          TAG="${{ inputs.service-name }}/${VERSION}"
           git config user.email "github-actions@github.com"
           git config user.name "GitHub Actions"
-          git tag "release/${{ inputs.service-name }}-${{ needs.ci.outputs.image-tag }}" || true
-          git push origin "release/${{ inputs.service-name }}-${{ needs.ci.outputs.image-tag }}" || true
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
+            echo "El tag $TAG ya existe; no se recrea."
+          else
+            git tag -a "$TAG" -m "Release ${{ inputs.service-name }} ${VERSION} (deploy a producción)"
+            git push origin "$TAG"
+            echo "Tag de release creado: $TAG"
+          fi
