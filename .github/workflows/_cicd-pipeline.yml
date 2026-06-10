@@ -191,7 +191,11 @@ jobs:
           kubectl set image deployment/${{ inputs.service-name }} \
             ${{ inputs.service-name }}=${{ env.ACR_REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ inputs.service-name }}:${{ needs.ci.outputs.image-tag }} \
             -n dev
-          kubectl rollout status deployment/${{ inputs.service-name }} -n dev --timeout=600s
+          kubectl rollout status deployment/${{ inputs.service-name }} -n dev --timeout=300s || {
+            echo "Rollout timeout — force-cleaning stuck pods and retrying..."
+            kubectl delete pods -l app=${{ inputs.service-name }} -n dev --grace-period=0 --force 2>/dev/null || true
+            kubectl rollout status deployment/${{ inputs.service-name }} -n dev --timeout=300s
+          }
 
   # ─────────────────────────────────────────────────────────────────────────────
   # CD STAGE — automático después de DEV (CD CA1 + CD CA3: namespace stage)
@@ -245,7 +249,11 @@ jobs:
           kubectl set image deployment/${{ inputs.service-name }} \
             ${{ inputs.service-name }}=${{ env.ACR_REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ inputs.service-name }}:${{ needs.ci.outputs.image-tag }} \
             -n stage
-          kubectl rollout status deployment/${{ inputs.service-name }} -n stage --timeout=600s
+          kubectl rollout status deployment/${{ inputs.service-name }} -n stage --timeout=300s || {
+            echo "Rollout timeout — force-cleaning stuck pods and retrying..."
+            kubectl delete pods -l app=${{ inputs.service-name }} -n stage --grace-period=0 --force 2>/dev/null || true
+            kubectl rollout status deployment/${{ inputs.service-name }} -n stage --timeout=300s
+          }
 
   # ─────────────────────────────────────────────────────────────────────────────
   # CD PROD — aprobación manual requerida (CD CA2 + CD CA3: namespace production)
@@ -302,7 +310,11 @@ jobs:
           kubectl set image deployment/${{ inputs.service-name }} \
             ${{ inputs.service-name }}=${{ env.ACR_REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ inputs.service-name }}:${{ needs.ci.outputs.image-tag }} \
             -n production
-          kubectl rollout status deployment/${{ inputs.service-name }} -n production --timeout=600s
+          kubectl rollout status deployment/${{ inputs.service-name }} -n production --timeout=300s || {
+            echo "Rollout timeout — force-cleaning stuck pods and retrying..."
+            kubectl delete pods -l app=${{ inputs.service-name }} -n production --grace-period=0 --force 2>/dev/null || true
+            kubectl rollout status deployment/${{ inputs.service-name }} -n production --timeout=300s
+          }
 
       - name: Tag release
         run: |
