@@ -408,6 +408,91 @@ Estado correcto del repo después de varios merges:
 
 ---
 
+## 3. Change Management Process
+
+### 3.1 Propósito
+
+Establecer un flujo formal y trazable para que todo cambio en la infraestructura y pipelines del sistema sea evaluado, autorizado y registrado antes de llegar a producción. Este documento es el counterpart del Change Management definido en el repositorio de aplicación, adaptado a la perspectiva de operaciones.
+
+### 3.2 Tipos de Cambio
+
+| Tipo | Categoría | Ejemplos | ¿Requiere PR? | ¿Requiere CI? |
+|---|---|---|---|---|
+| **Feature** | Nueva funcionalidad de infra/ops | `feat: add terraform module for EKS node group` | Sí | Sí |
+| **Fix** | Corrección de bug en pipelines o manifiestos | `fix: stage rollout deadlock on zero maxSurge` | Sí | Sí |
+| **Hotfix** | Corrección urgente en producción | `fix: patch ACR credentials in prod manifests` | Sí (fast-track) | Sí |
+| **Chore** | Mantenimiento, dependencias, config | `chore: upgrade Terraform to 1.6` | Sí | Sí |
+| **Docs** | Solo documentación | `docs: add rollback plan` | Sí | No obligatorio |
+| **Revert** | Reversión de un cambio anterior | `revert: feat: add prometheus scrape config` | Sí | Sí |
+
+### 3.3 Flujo de Aprobación de Cambios
+
+```
+┌────────────┐     ┌──────────┐     ┌───────────┐     ┌───────────┐     ┌───────────┐
+│ 1. Ticket  │────►│ 2. Rama  │────►│ 3. Pull   │────►│ 4.        │────►│ 5. Merge  │
+│ Jira:      │     │ docs/    │     │ Request   │     │ Revisión  │     │ Squash    │
+│ "InProgress"│     │ feat/    │     │ (título   │     │ + CI      │     │ + Jira    │
+│            │     │ fix/     │     │ Convent.  │     │ pasa      │     │ "Done"    │
+└────────────┘     │ chore/   │     │ Commits)  │     │           │     │           │
+                   └──────────┘     └───────────┘     └───────────┘     └───────────┘
+                                                              │
+                                                         ¿Aprueba?
+                                                         ┌───┴───┐
+                                                         │ Sí    │ No → se itera
+                                                         └───┬───┘
+                                                             ▼
+                                                     ┌───────────────┐
+                                                     │ Pipeline CI   │
+                                                     │ pasa en verde │
+                                                     └───────┬───────┘
+                                                             ▼
+                                                     ┌───────────────┐
+                                                     │ Merge +       │
+                                                     │ Deploy a dev  │
+                                                     └───────────────┘
+```
+
+**Reglas del flujo:**
+
+1. **Ticket en Jira**: Todo cambio debe tener un ticket Jira en estado `In Progress` antes de escribir código.
+2. **Rama desde master**: `git checkout -b <tipo>/INGESOFTV-XX-descripcion`
+3. **Pull Request**: Título sigue Conventional Commits. Cuerpo incluye descripción, motivación y checklist.
+4. **Revisión obligatoria**: Mínimo 1 approving review del compañero. No self-approval.
+5. **CI debe pasar**: Tests unitarios, SonarQube quality gate, Trivy security scan. Si falla, no se mergea.
+6. **Squash & Merge**: Un solo commit limpio en master con referencia al ticket Jira.
+7. **Jira a Done**: Al mergear, la historia pasa a `Done` con comentario de evidencia.
+
+### 3.4 Promoción por Ambientes
+
+| Etapa | Gatillo | Verificaciones |
+|---|---|---|
+| **DEV** | Automático al mergear a `master` | Smoke tests (health check) |
+| **STAGE** | Aprobación manual tras dev | Smoke tests + integración |
+| **PROD** | Aprobación manual + tag SemVer | Smoke tests + release notes |
+
+### 3.5 Trazabilidad
+
+Cada cambio debe ser rastreable desde el requerimiento hasta el deploy:
+
+```
+Ticket Jira ──► Rama ──► Commit ──► PR ──► Merge ──► Tag ──► Release Notes
+INGESOFTV-42   feat/    feat:      feat:    v1.0.0    v1.0.0
+               INGESOFTV add EKS   add EKS
+```
+
+### 3.6 Cambios de Emergencia (Hotfix)
+
+Para bugs críticos en producción que no pueden esperar el ciclo normal:
+
+1. Crear rama `fix/INGESOFTV-XX-descripcion` desde master
+2. PR con revisión exprés (1 approve, priorizada)
+3. CI pasa → merge → deploy automático a dev
+4. Approval manual acelerado a stage y prod
+5. Ticket de Jira se actualiza post-facto si es necesario
+6. Se documenta la causa raíz y la acción preventiva en un plazo de 24h
+
+---
+
 ## Resumen
 
 | Dimensión | Decisión | Justificación |
