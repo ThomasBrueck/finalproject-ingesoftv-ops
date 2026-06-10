@@ -327,3 +327,80 @@ jobs:
             git push origin "$TAG"
             echo "Tag de release creado: $TAG"
           fi
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # NOTIFICACIÓN DE FALLOS (SCRUM-34)
+  #
+  # Si cualquier etapa (CI, DEV, STAGE, PROD) falla, abre/actualiza un GitHub
+  # Issue con el detalle del fallo para que el equipo reaccione de inmediato.
+  # No requiere infraestructura externa ni secrets: usa el GITHUB_TOKEN.
+  #
+  # Nota: requiere que los permisos de Actions del repo permitan escritura
+  # (Settings → Actions → General → Workflow permissions → Read and write),
+  # o que el workflow llamador conceda 'issues: write'.
+  # ─────────────────────────────────────────────────────────────────────────────
+  notify-failure:
+    name: Notify on Failure
+    needs: [ci, deploy-dev, deploy-stage, deploy-prod]
+    if: failure()
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+
+    steps:
+      - name: Create or update failure issue
+        uses: actions/github-script@v7
+        env:
+          SERVICE: ${{ inputs.service-name }}
+          CI_RESULT: ${{ needs.ci.result }}
+          DEV_RESULT: ${{ needs.deploy-dev.result }}
+          STAGE_RESULT: ${{ needs.deploy-stage.result }}
+          PROD_RESULT: ${{ needs.deploy-prod.result }}
+          DEV_BRANCH: ${{ inputs.dev-branch }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        with:
+          script: |
+            const service = process.env.SERVICE;
+            const stages = {
+              'CI — Build & Scan': process.env.CI_RESULT,
+              'Deploy → DEV': process.env.DEV_RESULT,
+              'Deploy → STAGE': process.env.STAGE_RESULT,
+              'Deploy → PROD': process.env.PROD_RESULT,
+            };
+            const failed = Object.entries(stages)
+              .filter(([, r]) => r === 'failure')
+              .map(([name]) => name);
+
+            const label = 'pipeline-failure';
+            const title = `🔴 Pipeline falló: ${service}`;
+            const body = [
+              `**Servicio:** \`${service}\``,
+              `**Etapas fallidas:** ${failed.length ? failed.join(', ') : '(ver run)'}`,
+              `**Run:** ${process.env.RUN_URL}`,
+              `**Branch dev:** \`${process.env.DEV_BRANCH}\``,
+              `**Commit:** \`${context.sha}\``,
+              `**Fecha:** ${new Date().toISOString()}`,
+              '',
+              `| Etapa | Resultado |`,
+              `|---|---|`,
+              ...Object.entries(stages).map(([n, r]) => `| ${n} | ${r || 'n/a'} |`),
+            ].join('\n');
+
+            const { owner, repo } = context.repo;
+            const open = await github.rest.issues.listForRepo({
+              owner, repo, state: 'open', labels: label, per_page: 100,
+            });
+            const match = open.data.find(i => i.title === title);
+
+            if (match) {
+              await github.rest.issues.createComment({
+                owner, repo, issue_number: match.number,
+                body: `### Nuevo fallo del pipeline\n\n${body}`,
+              });
+              core.notice(`Comentario agregado al issue #${match.number}`);
+            } else {
+              const created = await github.rest.issues.create({
+                owner, repo, title, body, labels: [label],
+              });
+              core.notice(`Issue de fallo creado: #${created.data.number}`);
+            }
