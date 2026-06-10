@@ -82,6 +82,7 @@ jobs:
           ref: ${{ inputs.dev-branch }}
           token: ${{ secrets.DEV_REPO_TOKEN }}
           path: app
+          fetch-depth: 0
 
       - name: Set image tag
         id: tag
