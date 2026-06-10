@@ -45,6 +45,8 @@ spec:
           value: "cn=admin,dc=circleguard,dc=edu"
         - name: SPRING_LDAP_PASSWORD
           value: "admin"
+        - name: MANAGEMENT_HEALTH_LDAP_ENABLED
+          value: "false"
         - name: JWT_SECRET
           value: "my-super-secret-dev-key-32-chars-long-12345678"
         - name: QR_SECRET
