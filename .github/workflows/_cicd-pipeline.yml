@@ -194,11 +194,13 @@ jobs:
           POD=$(kubectl get pod -l app=${{ inputs.service-name }} -n dev \
             --sort-by=.metadata.creationTimestamp -o name \
             | tail -1 | sed 's|pod/||')
+          echo "Smoke test pod: $POD"
           for i in $(seq 1 5); do
-            STATUS=$(kubectl exec "$POD" -n dev -- \
-              wget -qO- "http://localhost:${{ inputs.service-port }}/actuator/health" 2>/dev/null \
-              | grep -m1 -o '"status":"[^"]*"' | cut -d'"' -f4 \
-              || echo "DOWN")
+            HEALTH=$(kubectl exec "$POD" -n dev -- \
+              wget -qO- "http://localhost:${{ inputs.service-port }}/actuator/health" 2>&1 \
+              || echo "EXEC_FAILED")
+            STATUS=$(echo "$HEALTH" | grep -m1 -o '"status":"[^"]*"' | cut -d'"' -f4)
+            echo "Attempt $i — STATUS='$STATUS' — RESPONSE=$(echo "$HEALTH" | head -c 300)"
             [ "$STATUS" = "UP" ] && echo "DEV health OK" && exit 0
             sleep 15
           done
