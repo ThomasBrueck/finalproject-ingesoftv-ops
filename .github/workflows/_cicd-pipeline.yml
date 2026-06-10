@@ -186,9 +186,6 @@ jobs:
           kubectl delete deployment ${{ inputs.service-name }} -n dev --ignore-not-found=true
           kubectl wait --for=delete deployment/${{ inputs.service-name }} -n dev --timeout=60s 2>/dev/null || true
           kubectl apply -f k8s/dev/${{ inputs.service-name }}-deployment.yaml
-          kubectl set image deployment/${{ inputs.service-name }} \
-            ${{ inputs.service-name }}=${{ env.ACR_REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ inputs.service-name }}:${{ needs.ci.outputs.image-tag }} \
-            -n dev
           kubectl rollout status deployment/${{ inputs.service-name }} -n dev --timeout=300s
 
   # ─────────────────────────────────────────────────────────────────────────────
@@ -238,9 +235,6 @@ jobs:
           kubectl delete deployment ${{ inputs.service-name }} -n stage --ignore-not-found=true
           kubectl wait --for=delete deployment/${{ inputs.service-name }} -n stage --timeout=60s 2>/dev/null || true
           kubectl apply -f k8s/stage/${{ inputs.service-name }}-deployment.yaml
-          kubectl set image deployment/${{ inputs.service-name }} \
-            ${{ inputs.service-name }}=${{ env.ACR_REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ inputs.service-name }}:${{ needs.ci.outputs.image-tag }} \
-            -n stage
           kubectl rollout status deployment/${{ inputs.service-name }} -n stage --timeout=300s
 
   # ─────────────────────────────────────────────────────────────────────────────
@@ -293,9 +287,6 @@ jobs:
           kubectl delete deployment ${{ inputs.service-name }} -n production --ignore-not-found=true
           kubectl wait --for=delete deployment/${{ inputs.service-name }} -n production --timeout=60s 2>/dev/null || true
           kubectl apply -f k8s/production/${{ inputs.service-name }}-deployment.yaml
-          kubectl set image deployment/${{ inputs.service-name }} \
-            ${{ inputs.service-name }}=${{ env.ACR_REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ inputs.service-name }}:${{ needs.ci.outputs.image-tag }} \
-            -n production
           kubectl rollout status deployment/${{ inputs.service-name }} -n production --timeout=300s
 
       - name: Tag release
