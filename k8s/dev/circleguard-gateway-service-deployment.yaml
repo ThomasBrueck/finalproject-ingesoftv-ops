@@ -42,6 +42,8 @@ spec:
           value: "false"
         - name: SPRING_MAIN_LAZY_INITIALIZATION
           value: "true"
+        - name: SPRING_FLYWAY_ENABLED
+          value: "false"
         - name: SPRING_AUTOCONFIGURE_EXCLUDE
           value: "org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration,org.springframework.boot.autoconfigure.data.redis.RedisReactiveAutoConfiguration,org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration"
         - name: JWT_SECRET
