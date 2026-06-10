@@ -1,0 +1,282 @@
+<mxfile host="app.diagrams.net" modified="2026-06-10T17:00:00.000Z" agent="Mozilla/5.0" version="24.2.5" compressed="false">
+  <diagram name="Infraestructura Azure - CircleGuard" id="infraestructura-azure">
+    <mxGraphModel dx="0" dy="0" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="1600" background="#ffffff">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- ========================= TITLE ========================= -->
+        <mxCell id="title" value="Infraestructura Azure — CircleGuard" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=24;fontStyle=1;fontColor="#333333";" vertex="1" parent="1">
+          <mxGeometry x="400" y="10" width="600" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- ========================= SECTION 1: CI/CD PIPELINE ========================= -->
+
+        <!-- CI/CD background box -->
+        <mxCell id="cicd-bg" value="CI/CD Pipeline — GitHub Actions" style="rounded=1;whiteSpace=wrap;html=1;fillColor="#E8F0FE;strokeColor="#2962FF;strokeWidth=2;fontStyle=1;fontSize=14;verticalAlign=top;align=center;paddingTop=10;" vertex="1" parent="1">
+          <mxGeometry x="40" y="60" width="1320" height="220" as="geometry" />
+        </mxCell>
+
+        <!-- GitHub logo/box -->
+        <mxCell id="cicd-github" value="GitHub Actions" style="rounded=1;whiteSpace=wrap;html=1;fillColor="#24292F;fontColor="#FFFFFF;strokeColor="#000000;fontStyle=1;fontSize=12;align=center;" vertex="1" parent="1">
+          <mxGeometry x="60" y="90" width="140" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Merge to master trigger -->
+        <mxCell id="cicd-merge" value="Merge a master" style="rounded=1;whiteSpace=wrap;html=1;fillColor="#FFF9C4;strokeColor="#F9A825;fontSize=11;align=center;" vertex="1" parent="1">
+          <mxGeometry x="220" y="90" width="120" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- CI box -->
+        <mxCell id="cicd-ci" value="CI" style="rounded=1;whiteSpace=wrap;html=1;fillColor="#E8F5E9;strokeColor="#43A047;strokeWidth=2;fontStyle=1;fontSize=12;align=center;" vertex="1" parent="1">
+          <mxGeometry x="370" y="90" width="100" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- CI sub-steps -->
+        <mxCell id="ci-compile" value="Compilar" style="rounded=0;whiteSpace=wrap;html=1;fillColor="#F1F8E9;strokeColor="#8BC34A;fontSize=10;align=center;" vertex="1" parent="1">
+          <mxGeometry x="490" y="80" width="80" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="ci-test" value="Tests" style="rounded=0;whiteSpace=wrap;html=1;fillColor="#F1F8E9;strokeColor="#8BC34A;fontSize=10;align=center;" vertex="1" parent="1">
+          <mxGeometry x="490" y="115" width="80" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="ci-sonar" value="SonarQube" style="rounded=0;whiteSpace=wrap;html=1;fillColor="#F1F8E9;strokeColor="#8BC34A;fontSize=10;align=center;" vertex="1" parent="1">
+          <mxGeometry x="580" y="80" width="80" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="ci-trivy" value="Trivy Scan" style="rounded=0;whiteSpace=wrap;html=1;fillColor="#F1F8E9;strokeColor="#8BC34A;fontSize=10;align=center;" vertex="1" parent="1">
+          <mxGeometry x="580" y="115" width="80" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="ci-docker" value="Build &amp; Push Docker" style="rounded=0;whiteSpace=wrap;html=1;fillColor="#F1F8E9;strokeColor="#8BC34A;fontSize=10;align=center;" vertex="1" parent="1">
+          <mxGeometry x="670" y="95" width="120" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- CD DEV box -->
+        <mxCell id="cd-dev" value="CD&#xa;DEV" style="rounded=1;whiteSpace=wrap;html=1;fillColor="#FFF3E0;strokeColor="#FB8C00;strokeWidth=2;fontStyle=1;fontSize=11;align=center;" vertex="1" parent="1">
+          <mxGeometry x="830" y="90" width="80" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- CD STAGE box -->
+        <mxCell id="cd-stage" value="CD&#xa;STAGE" style="rounded=1;whiteSpace=wrap;html=1;fillColor="#FFF3E0;strokeColor="#FB8C00;strokeWidth=2;fontStyle=1;fontSize=11;align=center;" vertex="1" parent="1">
+          <mxGeometry x="950" y="90" width="80" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- CD PROD box -->
+        <mxCell id="cd-prod" value="CD&#xa;PROD" style="rounded=1;whiteSpace=wrap;html=1;fillColor="#FFF3E0;strokeColor="#FB8C00;strokeWidth=2;fontStyle=1;fontSize=11;align=center;" vertex="1" parent="1">
+          <mxGeometry x="1070" y="90" width="80" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- CD labels -->
+        <mxCell id="cd-dev-label" value="Automático" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=9;fontColor="#666666;" vertex="1" parent="1">
+          <mxGeometry x="830" y="145" width="80" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="cd-stage-label" value="Manual Approval" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=9;fontColor="#666666;" vertex="1" parent="1">
+          <mxGeometry x="950" y="145" width="80" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="cd-prod-label" value="Manual Approval&#xa;+ Tag SemVer" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=9;fontColor="#666666;" vertex="1" parent="1">
+          <mxGeometry x="1070" y="140" width="80" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- Pipeline arrows -->
+        <mxCell id="arrow-merge-ci" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor="#2962FF;strokeWidth=2;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="cicd-merge" target="cicd-ci">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow-ci-cddev" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor="#2962FF;strokeWidth=2;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="cicd-ci" target="cd-dev">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow-cddev-cdstage" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor="#2962FF;strokeWidth=2;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;dashed=1;" edge="1" parent="1" source="cd-dev" target="cd-stage">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow-cdstage-cdprod" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor="#2962FF;strokeWidth=2;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;dashed=1;" edge="1" parent="1" source="cd-stage" target="cd-prod">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Push to ACR arrow -->
+        <mxCell id="arrow-push-acr" value="Push Images" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor="#2962FF;strokeWidth=2;exitX=0.25;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0;entryDx=0;entryDy=0;fontSize=10;" edge="1" parent="1" source="cicd-ci" target="acr-box">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="420" y="200" />
+              <mxPoint x="420" y="320" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- ========================= SECTION 2: AZURE CLOUD ========================= -->
+
+        <!-- Azure Cloud background -->
+        <mxCell id="azure-bg" value="Microsoft Azure" style="rounded=1;whiteSpace=wrap;html=1;fillColor="#E3F2FD;strokeColor="#1565C0;strokeWidth=2;fontStyle=1;fontSize=14;verticalAlign=top;align=center;paddingTop=10;" vertex="1" parent="1">
+          <mxGeometry x="40" y="290" width="1320" height="530" as="geometry" />
+        </mxCell>
+
+        <!-- Resource Group box -->
+        <mxCell id="rg-box" value="Resource Group: circleguard-core-rg (East US 2)" style="rounded=1;whiteSpace=wrap;html=1;fillColor="#BBDEFB;strokeColor="#1565C0;strokeWidth=2;fontStyle=1;fontSize=12;align=center;" vertex="1" parent="1">
+          <mxGeometry x="60" y="320" width="1280" height="480" as="geometry" />
+        </mxCell>
+
+        <!-- ACR box -->
+        <mxCell id="acr-box" value="Azure Container Registry&#xa;circleguardacrcore (Basic SKU)" style="rounded=1;whiteSpace=wrap;html=1;fillColor="#FFFFFF;strokeColor="#1565C0;strokeWidth=2;fontSize=11;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="90" y="360" width="200" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Images in ACR -->
+        <mxCell id="acr-images" value="circle-guard/&lt;b&gt;auth-service&lt;/b&gt;:latest&#xa;circle-guard/&lt;b&gt;identity-service&lt;/b&gt;:latest&#xa;circle-guard/&lt;b&gt;promotion-service&lt;/b&gt;:latest&#xa;circle-guard/&lt;b&gt;notification-service&lt;/b&gt;:latest&#xa;circle-guard/&lt;b&gt;form-service&lt;/b&gt;:latest&#xa;circle-guard/&lt;b&gt;file-service&lt;/b&gt;:latest&#xa;circle-guard/&lt;b&gt;gateway-service&lt;/b&gt;:latest&#xa;circle-guard/&lt;b&gt;dashboard-service&lt;/b&gt;:latest" style="rounded=0;whiteSpace=wrap;html=1;fillColor="#FAFAFA;strokeColor="#BDBDBD;fontSize=10;align=left;verticalAlign=middle;fontColor="#333333;" vertex="1" parent="1">
+          <mxGeometry x="90" y="425" width="200" height="150" as="geometry" />
+        </mxCell>
+
+        <!-- AKS box -->
+        <mxCell id="aks-box" value="AKS Cluster&#xa;circleguard-aks (Free tier, 1 nodo D2s_v3)" style="rounded=1;whiteSpace=wrap;html=1;fillColor="#FFFFFF;strokeColor="#1565C0;strokeWidth=2;fontSize=11;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="350" y="360" width="220" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- AcrPull arrow -->
+        <mxCell id="arrow-acrpull" value="AcrPull role" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor="#1565C0;strokeWidth=2;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;fontSize=10;fontColor="#1565C0;" edge="1" parent="1" source="acr-box" target="aks-box">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Terraform State -->
+        <mxCell id="tf-box" value="Terraform State Storage" style="rounded=1;whiteSpace=wrap;html=1;fillColor="#FFFFFF;strokeColor="#1565C0;strokeWidth=2;fontSize=11;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="90" y="600" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="tf-detail" value="RG: circleguard-tfstate-rg&#xa;Storage: cgtfstate99901&#xa;Container: tfstate&#xa;Keys: core, env/dev, env/stage, env/prod" style="rounded=0;whiteSpace=wrap;html=1;fillColor="#FAFAFA;strokeColor="#BDBDBD;fontSize=10;align=left;verticalAlign=middle;fontColor="#333333;" vertex="1" parent="1">
+          <mxGeometry x="90" y="665" width="200" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- Arrow TF applies to AKS -->
+        <mxCell id="arrow-tf-aks" value="Terraform apply" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor="#1565C0;strokeWidth=2;exitX=1;exitY=0.3;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;fontSize=10;" edge="1" parent="1" source="tf-box" target="aks-box">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="300" y="618" />
+              <mxPoint x="300" y="390" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- ========================= SECTION 3: K8S NAMESPACES ========================= -->
+
+        <!-- Labels for namespaces -->
+        <mxCell id="ns-dev-label" value="Namespace: dev" style="rounded=1;whiteSpace=wrap;html=1;fillColor="#E8F5E9;strokeColor="#43A047;strokeWidth=2;fontStyle=1;fontSize=12;align=center;" vertex="1" parent="1">
+          <mxGeometry x="350" y="450" width="220" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="ns-stage-label" value="Namespace: stage" style="rounded=1;whiteSpace=wrap;html=1;fillColor="#FFF3E0;strokeColor="#FB8C00;strokeWidth=2;fontStyle=1;fontSize=12;align=center;" vertex="1" parent="1">
+          <mxGeometry x="610" y="450" width="220" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="ns-prod-label" value="Namespace: production" style="rounded=1;whiteSpace=wrap;html=1;fillColor="#FFEBEE;strokeColor="#E53935;strokeWidth=2;fontStyle=1;fontSize=12;align=center;" vertex="1" parent="1">
+          <mxGeometry x="870" y="450" width="220" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- Dev services -->
+        <mxCell id="svc-dev-db" value="PostgreSQL 17&#xa;(PVC 5Gi)" style="rounded=0;whiteSpace=wrap;html=1;fillColor="#E8F5E9;strokeColor="#66BB6A;fontSize=10;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="355" y="490" width="100" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="svc-dev-ldap" value="OpenLDAP 1.5.0&#xa;(389/636)" style="rounded=0;whiteSpace=wrap;html=1;fillColor="#E8F5E9;strokeColor="#66BB6A;fontSize=10;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="465" y="490" width="100" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="svc-dev-8" value="8 microservicios" style="rounded=0;whiteSpace=wrap;html=1;fillColor="#C8E6C9;strokeColor="#388E3C;fontSize=10;align=center;verticalAlign=middle;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="355" y="530" width="210" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="svc-dev-missing" value="Faltan: Kafka, Redis, Neo4j" style="rounded=0;whiteSpace=wrap;html=1;fillColor="#FFCDD2;strokeColor="#E53935;fontSize=9;align=center;verticalAlign=middle;fontColor="#B71C1C;" vertex="1" parent="1">
+          <mxGeometry x="355" y="560" width="210" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- Stage services -->
+        <mxCell id="svc-stage-db" value="PostgreSQL (Helm)&#xa;(PVC 5Gi)" style="rounded=0;whiteSpace=wrap;html=1;fillColor="#FFF3E0;strokeColor="#FFA726;fontSize=10;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="615" y="490" width="100" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="svc-stage-redis" value="Redis (Helm)&#xa;(Standalone, no auth)" style="rounded=0;whiteSpace=wrap;html=1;fillColor="#FFF3E0;strokeColor="#FFA726;fontSize=10;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="725" y="490" width="100" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="svc-stage-kafka" value="Kafka (Helm)&#xa;(1 réplica)" style="rounded=0;whiteSpace=wrap;html=1;fillColor="#FFF3E0;strokeColor="#FFA726;fontSize=10;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="615" y="530" width="100" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="svc-stage-8" value="8 microservicios" style="rounded=0;whiteSpace=wrap;html=1;fillColor="#FFE0B2;strokeColor="#E65100;fontSize=10;align=center;verticalAlign=middle;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="725" y="530" width="100" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="svc-stage-ldap-missing" value="Falta: LDAP, Neo4j&#xa;(apunta a dev)" style="rounded=0;whiteSpace=wrap;html=1;fillColor="#FFCDD2;strokeColor="#E53935;fontSize=9;align=center;verticalAlign=middle;fontColor="#B71C1C;" vertex="1" parent="1">
+          <mxGeometry x="615" y="570" width="210" height="22" as="geometry" />
+        </mxCell>
+
+        <!-- Prod services -->
+        <mxCell id="svc-prod-db" value="PostgreSQL (Helm)&#xa;(PVC 20Gi)" style="rounded=0;whiteSpace=wrap;html=1;fillColor="#FFEBEE;strokeColor="#EF5350;fontSize=10;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="875" y="490" width="100" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="svc-prod-redis" value="Redis (Helm)&#xa;(Standalone, no auth)" style="rounded=0;whiteSpace=wrap;html=1;fillColor="#FFEBEE;strokeColor="#EF5350;fontSize=10;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="985" y="490" width="100" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="svc-prod-kafka" value="Kafka (Helm)&#xa;(3 réplicas)" style="rounded=0;whiteSpace=wrap;html=1;fillColor="#FFEBEE;strokeColor="#EF5350;fontSize=10;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="875" y="530" width="100" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="svc-prod-8" value="8 microservicios" style="rounded=0;whiteSpace=wrap;html=1;fillColor="#EF9A9A;strokeColor="#C62828;fontSize=10;align=center;verticalAlign=middle;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="985" y="530" width="100" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="svc-prod-ldap-missing" value="Falta: LDAP, Neo4j&#xa;(apunta a dev)" style="rounded=0;whiteSpace=wrap;html=1;fillColor="#FFCDD2;strokeColor="#E53935;fontSize=9;align=center;verticalAlign=middle;fontColor="#B71C1C;" vertex="1" parent="1">
+          <mxGeometry x="875" y="570" width="210" height="22" as="geometry" />
+        </mxCell>
+
+        <!-- Replicas info -->
+        <mxCell id="svc-replicas" value="Replicas: 1 c/u&#xa;(except gateway 2)" style="rounded=0;whiteSpace=wrap;html=1;fillColor="#F5F5F5;strokeColor="#9E9E9E;fontSize=9;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="355" y="585" width="210" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="svc-stage-replicas" value="Replicas: 1 c/u" style="rounded=0;whiteSpace=wrap;html=1;fillColor="#F5F5F5;strokeColor="#9E9E9E;fontSize=9;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="615" y="597" width="210" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="svc-prod-replicas" value="Replicas: 2 c/u" style="rounded=0;whiteSpace=wrap;html=1;fillColor="#F5F5F5;strokeColor="#9E9E9E;fontSize=9;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="875" y="597" width="210" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- Critical issue callout -->
+        <mxCell id="issue-callout" value="⚠️  PROBLEMA CRÍTICO ⚠️&#xa;Stage y Production apuntan a infraestructura de dev&#xa;(postgres-dev-postgresql.dev.svc.cluster.local)" style="rounded=1;whiteSpace=wrap;html=1;fillColor="#FFEBEE;strokeColor="#E53935;strokeWidth=2;fontSize=11;fontStyle=1;align=center;verticalAlign=middle;fontColor="#B71C1C;" vertex="1" parent="1">
+          <mxGeometry x="610" y="640" width="490" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Legend box -->
+        <mxCell id="legend-box" value="Referencias" style="rounded=1;whiteSpace=wrap;html=1;fillColor="#F5F5F5;strokeColor="#9E9E9E;strokeWidth=2;fontStyle=1;fontSize=12;align=left;verticalAlign=top;paddingTop=10;" vertex="1" parent="1">
+          <mxGeometry x="90" y="750" width="200" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-deployed" value="✔  Desplegado" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=11;fontColor="#388E3C;" vertex="1" parent="1">
+          <mxGeometry x="100" y="770" width="150" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-missing" value="✘  No desplegado" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=11;fontColor="#B71C1C;" vertex="1" parent="1">
+          <mxGeometry x="100" y="790" width="150" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-manual-approval" value="- - -  Aprobación manual" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=11;fontColor="#666666;" vertex="1" parent="1">
+          <mxGeometry x="100" y="810" width="150" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-auto" value="────  Automático" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=11;fontColor="#2962FF;" vertex="1" parent="1">
+          <mxGeometry x="100" y="830" width="150" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- ========================= CONNECTORS ========================= -->
+
+        <!-- Deploy arrows from CD to namespaces -->
+        <mxCell id="arrow-cd-dev-ns" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor="#2962FF;strokeWidth=2;exitX=0.25;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="870" y="140" as="sourcePoint" />
+            <mxPoint x="460" y="450" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="arrow-cd-stage-ns" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor="#2962FF;strokeWidth=2;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0;entryDx=0;entryDy=0;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="990" y="140" as="sourcePoint" />
+            <mxPoint x="720" y="450" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="arrow-cd-prod-ns" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor="#2962FF;strokeWidth=2;exitX=0.75;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0;entryDx=0;entryDy=0;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1110" y="140" as="sourcePoint" />
+            <mxPoint x="980" y="450" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Dev infra connection arrows -->
+        <mxCell id="arrow-dev-to-stage" value="stage apunta a PostgreSQL + LDAP de dev" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor="#E53935;strokeWidth=2;exitX=1;exitY=0.4;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;fontSize=9;fontColor="#E53935;dashed=1;" edge="1" parent="1" source="svc-dev-db" target="svc-stage-db">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow-dev-to-prod" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor="#E53935;strokeWidth=2;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="625" y="655" as="sourcePoint" />
+            <mxPoint x="1080" y="625" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
