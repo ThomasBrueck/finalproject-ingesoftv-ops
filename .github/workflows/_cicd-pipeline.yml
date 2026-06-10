@@ -94,9 +94,9 @@ jobs:
           distribution: temurin
           cache: gradle
 
-      - name: Compile service
+      - name: Compile all services
         working-directory: app
-        run: ./gradlew :services:${{ inputs.service-name }}:classes --no-daemon
+        run: ./gradlew classes --no-daemon
 
       - name: Unit Tests
         working-directory: app
