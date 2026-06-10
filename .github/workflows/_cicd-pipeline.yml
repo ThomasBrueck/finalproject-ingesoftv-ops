@@ -76,7 +76,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: ThomasBrueck/finalproject-ingesoftv-ops
-          ref: ${{ github.workflow_sha }}
+          ref: master
 
       - name: Checkout dev repo (código fuente)
         uses: actions/checkout@v4
@@ -168,7 +168,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: ThomasBrueck/finalproject-ingesoftv-ops
-          ref: ${{ github.workflow_sha }}
+          ref: master
 
       - name: Azure Login
         uses: azure/login@v2
@@ -227,7 +227,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: ThomasBrueck/finalproject-ingesoftv-ops
-          ref: ${{ github.workflow_sha }}
+          ref: master
 
       - name: Azure Login
         uses: azure/login@v2
@@ -298,7 +298,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: ThomasBrueck/finalproject-ingesoftv-ops
-          ref: ${{ github.workflow_sha }}
+          ref: master
 
       - name: Azure Login
         uses: azure/login@v2
