@@ -103,9 +103,12 @@ jobs:
         working-directory: app
         run: ./gradlew classes --no-daemon
 
-      - name: Unit Tests
+      # Run every module's tests so JaCoCo reports exist for all services before
+      # the SonarCloud analysis (which scans the whole project). Otherwise Sonar
+      # only sees the triggering service's coverage and reports the rest as 0%.
+      - name: Unit Tests (all modules)
         working-directory: app
-        run: ./gradlew :services:${{ inputs.service-name }}:test --no-daemon
+        run: ./gradlew test --no-daemon
 
       - name: Coverage Verification (>= 70%)
         working-directory: app
