@@ -306,6 +306,9 @@ jobs:
           kubectl port-forward -n stage service/circleguard-dashboard-service 8084:80 &
           kubectl port-forward -n stage service/circleguard-file-service 8085:80 &
           sleep 8
+      - name: Make gradlew executable
+        working-directory: app/e2e
+        run: chmod +x gradlew
       - name: Run E2E tests
         env:
           AUTH_SERVICE_URL: http://localhost:8180
