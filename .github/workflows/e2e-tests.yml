@@ -14,6 +14,7 @@ on:
 
 env:
   DEV_REPO: ThomasBrueck/finalproject-ingesoftv-dev
+  K8S_NAMESPACE: stage
 
 jobs:
   test-suite:
@@ -110,6 +111,40 @@ jobs:
         with:
           name: zap-results-${{ github.run_id }}
           path: app/tests/security/build/reports/
+
+      # Phase 4: HPA Verification (only in K8s environment with kubectl)
+      - name: Verify HPA auto-scaling
+        if: success()
+        run: |
+          if command -v kubectl &> /dev/null; then
+            chmod +x tests/hpa-verify.sh
+            ./tests/hpa-verify.sh ${{ env.K8S_NAMESPACE }} 2
+          else
+            echo "Skipping HPA verification: kubectl not found (non-K8s environment)"
+          fi
+        continue-on-error: true
+
+      - name: Upload HPA verification report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hpa-results-${{ github.run_id }}
+          path: tests/build/reports/hpa/
+
+      # Phase 5: Consolidated Report
+      - name: Generate consolidated quality report
+        if: always()
+        run: |
+          chmod +x app/tests/consolidate-report.sh
+          app/tests/consolidate-report.sh
+        continue-on-error: true
+
+      - name: Upload consolidated report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: consolidated-report-${{ github.run_id }}
+          path: app/tests/build/reports/consolidated/
 
       # Collect logs on failure
       - name: Collect logs on failure
