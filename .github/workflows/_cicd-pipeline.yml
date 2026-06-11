@@ -345,33 +345,37 @@ jobs:
             cat "$f"
           done
 
-          # Active readiness gate: wait until every service actually answers
-          # through its port-forward before running any test. The fixed sleep was
-          # not enough — kubectl opens the local listener immediately, but the
-          # tunnel + (lazy-init) service take longer, so early tests hit
-          # ConnectException while later ones pass.
-          echo "=== Waiting for all services to be reachable ==="
+          # Active readiness gate: wait until every service returns HTTP 200 on
+          # /actuator/health before running any test.
+          # Checking / (root) was not enough: Tomcat binds and returns 404 early,
+          # but with probes.enabled=true Spring Boot keeps /actuator/health at 503
+          # (REFUSING_TRAFFIC) until the full application context is ready.
+          # Tests calling /actuator/health or /actuator/prometheus were failing with
+          # 503 / AssertionFailedError on slower services (identity, promotion,
+          # form, gateway) that took >8s but <180s to fully start.
+          echo "=== Waiting for all services to report healthy (HTTP 200) ==="
           PORTS="8180 8083 8088 8082 8086 8087 8084 8085"
           FAILED=0
           for port in $PORTS; do
-            printf "localhost:%s ... " "$port"
+            printf "localhost:%s /actuator/health ... " "$port"
             UP=0
-            for i in $(seq 1 30); do
-              CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 5 "http://localhost:$port/" 2>/dev/null || echo 000)
-              if [ "$CODE" != "000" ]; then
-                echo "reachable (HTTP $CODE) after $((i*3))s"
+            for i in $(seq 1 60); do
+              CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 5 "http://localhost:$port/actuator/health" 2>/dev/null || echo 000)
+              if [ "$CODE" = "200" ]; then
+                echo "UP after $((i*3))s"
                 UP=1
                 break
               fi
               sleep 3
             done
             if [ "$UP" = "0" ]; then
-              echo "UNREACHABLE after 90s"
+              echo "NOT HEALTHY after 180s (last HTTP code: $CODE)"
               FAILED=1
             fi
           done
           if [ "$FAILED" = "1" ]; then
-            echo "::error::One or more services never became reachable via port-forward."
+            echo "::error::One or more services did not become healthy within 180s."
+            exit 1
           fi
 
           echo "=== Running E2E Tests ==="
