@@ -197,8 +197,12 @@ jobs:
             -n dev --dry-run=client -o yaml | kubectl apply -f -
           kubectl apply -f k8s/dev/postgres-dev-postgresql.yaml
           kubectl apply -f k8s/dev/circleguard-ldap-deployment.yaml
+          kubectl apply -f k8s/dev/redis-dev.yaml
+          kubectl apply -f k8s/dev/neo4j-dev.yaml
           kubectl rollout status deployment/postgres-dev-postgresql -n dev --timeout=180s
           kubectl rollout status deployment/circleguard-ldap -n dev --timeout=120s
+          kubectl rollout status deployment/redis-dev-master -n dev --timeout=60s
+          kubectl rollout status deployment/neo4j-dev -n dev --timeout=300s
           kubectl delete deployment ${{ inputs.service-name }} -n dev --ignore-not-found=true
           kubectl wait --for=delete deployment/${{ inputs.service-name }} -n dev --timeout=60s 2>/dev/null || true
           kubectl apply -f k8s/dev/${{ inputs.service-name }}-deployment.yaml
