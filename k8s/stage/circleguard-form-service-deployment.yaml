@@ -34,13 +34,15 @@ spec:
             memory: "512Mi"
             cpu: "500m"
         readinessProbe:
-          tcpSocket:
+          httpGet:
+            path: /actuator/health/readiness
             port: 8086
           initialDelaySeconds: 90
           periodSeconds: 5
           failureThreshold: 12
         livenessProbe:
-          tcpSocket:
+          httpGet:
+            path: /actuator/health/liveness
             port: 8086
           initialDelaySeconds: 120
           periodSeconds: 15
@@ -96,6 +98,10 @@ kind: Service
 metadata:
   name: circleguard-form-service
   namespace: stage
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/path: "/actuator/prometheus"
+    prometheus.io/port: "8086"
 spec:
   selector:
     app: circleguard-form-service
