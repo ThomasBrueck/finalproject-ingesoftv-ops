@@ -107,6 +107,10 @@ jobs:
         working-directory: app
         run: ./gradlew :services:${{ inputs.service-name }}:test --no-daemon
 
+      - name: Coverage Verification (>= 70%)
+        working-directory: app
+        run: ./gradlew :services:${{ inputs.service-name }}:jacocoTestCoverageVerification --no-daemon
+
       # CI CA1 + CA2: SonarCloud via Gradle plugin (task 'sonar' desde v5.x)
       - name: SonarCloud Analysis
         working-directory: app
@@ -118,7 +122,14 @@ jobs:
             -Dsonar.host.url=https://sonarcloud.io \
             -Dsonar.organization=${{ vars.SONAR_ORGANIZATION }} \
             -Dsonar.projectKey=${{ vars.SONAR_PROJECT_KEY }} \
-            -Dsonar.qualitygate.wait=false
+            -Dsonar.qualitygate.wait=true
+
+      - name: Upload Coverage Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jacoco-report-${{ inputs.service-name }}-${{ github.run_id }}
+          path: app/services/${{ inputs.service-name }}/build/reports/jacoco/
 
       - name: Log in to ACR
         uses: docker/login-action@v3
@@ -184,6 +195,11 @@ jobs:
       - name: Deploy to DEV namespace
         run: |
           kubectl apply -f k8s/dev/00-namespace.yaml
+          kubectl create secret docker-registry acr-secret \
+            --docker-server=${{ env.ACR_REGISTRY }} \
+            --docker-username=${{ secrets.ACR_USERNAME }} \
+            --docker-password=${{ secrets.ACR_PASSWORD }} \
+            -n dev --dry-run=client -o yaml | kubectl apply -f -
           kubectl apply -f k8s/dev/postgres-dev-postgresql.yaml
           kubectl apply -f k8s/dev/circleguard-ldap-deployment.yaml
           kubectl rollout status deployment/postgres-dev-postgresql -n dev --timeout=180s

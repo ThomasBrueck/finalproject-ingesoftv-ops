@@ -14,17 +14,18 @@ on:
 
 env:
   DEV_REPO: ThomasBrueck/finalproject-ingesoftv-dev
+  K8S_NAMESPACE: stage
 
 jobs:
-  e2e:
-    name: E2E Tests
+  test-suite:
+    name: Complete Test Suite
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout ops repo (E2E test code)
+      - name: Checkout ops repo
         uses: actions/checkout@v4
 
-      - name: Checkout dev repo (service source code)
+      - name: Checkout dev repo
         uses: actions/checkout@v4
         with:
           repository: ${{ env.DEV_REPO }}
@@ -52,19 +53,20 @@ jobs:
 
       - name: Build service images
         run: |
-          cd tests/e2e
+          cd app/e2e
           export DEV_REPO_PATH=${{ github.workspace }}/app
           docker compose build --parallel
 
       - name: Start services
         run: |
-          cd tests/e2e
+          cd app/e2e
           export DEV_REPO_PATH=${{ github.workspace }}/app
           docker compose up -d --wait
 
+      # Phase 1: E2E Tests
       - name: Run E2E tests
         run: |
-          cd tests/e2e
+          cd app/e2e
           export AUTH_SERVICE_URL=http://localhost:8180
           export IDENTITY_SERVICE_URL=http://localhost:8083
           export PROMOTION_SERVICE_URL=http://localhost:8088
@@ -75,23 +77,94 @@ jobs:
           export FILE_SERVICE_URL=http://localhost:8085
           ./gradlew test --no-daemon
 
-      - name: Collect logs on failure
-        if: failure()
-        run: |
-          cd tests/e2e
-          mkdir -p build/reports/logs
-          docker compose logs --tail=200 > build/reports/logs/service-logs.txt
-          docker compose ps >> build/reports/logs/service-ps.txt
-
-      - name: Upload test reports
+      - name: Upload E2E test reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: e2e-test-results-${{ github.run_id }}
-          path: tests/e2e/build/reports/
+          path: app/e2e/build/reports/
 
+      # Phase 2: Performance Tests (Locust)
+      - name: Run Locust performance tests
+        if: success()
+        run: |
+          chmod +x app/tests/performance/run-locust.sh
+          app/tests/performance/run-locust.sh http://localhost:8080 10 2 60s
+
+      - name: Upload Locust reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: locust-results-${{ github.run_id }}
+          path: app/tests/performance/build/reports/
+
+      # Phase 3: Security Tests (OWASP ZAP)
+      - name: Run OWASP ZAP security scan
+        if: success()
+        run: |
+          chmod +x app/tests/security/zap-scan.sh
+          app/tests/security/zap-scan.sh http://localhost:8083
+
+      - name: Upload ZAP reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: zap-results-${{ github.run_id }}
+          path: app/tests/security/build/reports/
+
+      # Phase 4: HPA Verification (only in K8s environment with kubectl)
+      - name: Verify HPA auto-scaling
+        if: success()
+        run: |
+          if command -v kubectl &> /dev/null; then
+            chmod +x tests/hpa-verify.sh
+            ./tests/hpa-verify.sh ${{ env.K8S_NAMESPACE }} 2
+          else
+            echo "Skipping HPA verification: kubectl not found (non-K8s environment)"
+          fi
+        continue-on-error: true
+
+      - name: Upload HPA verification report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hpa-results-${{ github.run_id }}
+          path: tests/build/reports/hpa/
+
+      # Phase 5: Consolidated Report
+      - name: Generate consolidated quality report
+        if: always()
+        run: |
+          chmod +x app/tests/consolidate-report.sh
+          app/tests/consolidate-report.sh
+        continue-on-error: true
+
+      - name: Upload consolidated report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: consolidated-report-${{ github.run_id }}
+          path: app/tests/build/reports/consolidated/
+
+      # Collect logs on failure
+      - name: Collect logs on failure
+        if: failure()
+        run: |
+          cd app/e2e
+          mkdir -p build/reports/logs
+          docker compose logs --tail=200 > build/reports/logs/service-logs.txt
+          docker compose ps >> build/reports/logs/service-ps.txt
+
+      - name: Upload failure logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: failure-logs-${{ github.run_id }}
+          path: app/e2e/build/reports/logs/
+
+      # Cleanup
       - name: Stop containers
         if: always()
         run: |
-          cd tests/e2e
+          cd app/e2e
           docker compose down -v
