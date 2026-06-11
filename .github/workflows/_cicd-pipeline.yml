@@ -111,18 +111,10 @@ jobs:
         working-directory: app
         run: ./gradlew :services:${{ inputs.service-name }}:jacocoTestCoverageVerification --no-daemon
 
-      # CI CA1 + CA2: SonarCloud via Gradle plugin (task 'sonar' desde v5.x)
-      - name: SonarCloud Analysis
-        working-directory: app
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        run: |
-          ./gradlew sonar --no-daemon \
-            -Dsonar.host.url=https://sonarcloud.io \
-            -Dsonar.organization=${{ vars.SONAR_ORGANIZATION }} \
-            -Dsonar.projectKey=${{ vars.SONAR_PROJECT_KEY }} \
-            -Dsonar.qualitygate.wait=true
+      # NOTA: el análisis de SonarCloud (CA1 + CA2) corre en un workflow dedicado
+      # del repo dev (.github/workflows/sonarcloud.yml), UNA sola vez por commit.
+      # No se hace aquí porque los 8 pipelines por-servicio analizarían el mismo
+      # project key y commit en paralelo y SonarCloud rechaza reportes duplicados.
 
       - name: Upload Coverage Report
         if: always()
