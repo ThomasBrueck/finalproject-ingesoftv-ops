@@ -58,6 +58,7 @@ spec:
               value: "postgres"
             - name: PGDATA
               value: /var/lib/postgresql/data/pgdata
+          args: ["postgres", "-c", "max_connections=200"]
           volumeMounts:
             - name: data
               mountPath: /var/lib/postgresql/data

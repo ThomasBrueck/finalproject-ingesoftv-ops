@@ -61,6 +61,10 @@ spec:
           value: "false"
         - name: SPRING_DATASOURCE_HIKARI_INITIALIZATION_FAIL_TIMEOUT
           value: "0"
+        - name: SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE
+          value: "3"
+        - name: SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE
+          value: "1"
         - name: SPRING_KAFKA_LISTENER_AUTO_STARTUP
           value: "false"
 ---
