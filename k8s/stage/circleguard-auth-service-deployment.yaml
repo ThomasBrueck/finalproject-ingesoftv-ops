@@ -34,13 +34,15 @@ spec:
             memory: "512Mi"
             cpu: "500m"
         readinessProbe:
-          tcpSocket:
+          httpGet:
+            path: /actuator/health/readiness
             port: 8180
           initialDelaySeconds: 90
           periodSeconds: 5
           failureThreshold: 12
         livenessProbe:
-          tcpSocket:
+          httpGet:
+            path: /actuator/health/liveness
             port: 8180
           initialDelaySeconds: 120
           periodSeconds: 15
@@ -114,6 +116,10 @@ kind: Service
 metadata:
   name: circleguard-auth-service
   namespace: stage
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/path: "/actuator/prometheus"
+    prometheus.io/port: "8180"
 spec:
   selector:
     app: circleguard-auth-service

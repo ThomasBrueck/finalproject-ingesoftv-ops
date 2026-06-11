@@ -1,0 +1,188 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-datasources
+  namespace: stage
+data:
+  datasource.yaml: |
+    apiVersion: 1
+    datasources:
+      - name: Prometheus
+        type: prometheus
+        access: proxy
+        url: http://prometheus:9090
+        isDefault: true
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboards-provider
+  namespace: stage
+data:
+  dashboard.yaml: |
+    apiVersion: 1
+    providers:
+      - name: 'CircleGuard Dashboards'
+        orgId: 1
+        folder: 'CircleGuard'
+        type: file
+        disableDeletion: false
+        updateIntervalSeconds: 10
+        editable: true
+        options:
+          path: /var/lib/grafana/dashboards
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboards
+  namespace: stage
+data:
+  circleguard_dashboard.json: |
+    {
+      "annotations": { "list": [] },
+      "editable": true,
+      "fiscalYearStartMonth": 0,
+      "graphTooltip": 1,
+      "id": 1,
+      "links": [],
+      "liveNow": true,
+      "panels": [
+        { "id": 10, "type": "row", "title": "Estado de Servicios", "collapsed": false, "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 } },
+        {
+          "id": 11, "title": "Servicios UP / DOWN", "type": "stat",
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "gridPos": { "h": 5, "w": 24, "x": 0, "y": 1 },
+          "options": { "colorMode": "background", "graphMode": "none", "reduceOptions": { "calcs": ["lastNotNull"] } },
+          "fieldConfig": { "defaults": { "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 1 }] }, "mappings": [{ "type": "value", "options": { "1": { "text": "UP" }, "0": { "text": "DOWN" } } }] } },
+          "targets": [{ "expr": "up{job=\"kubernetes-service-endpoints\"}", "legendFormat": "{{kubernetes_service_name}}" }]
+        },
+        { "id": 20, "type": "row", "title": "Metricas de Negocio", "collapsed": false, "gridPos": { "h": 1, "w": 24, "x": 0, "y": 6 } },
+        {
+          "id": 21, "title": "Auth: Inicios de Sesion por minuto", "type": "timeseries",
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 7 },
+          "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" }, "custom": { "lineWidth": 2, "fillOpacity": 10 } } },
+          "targets": [
+            { "expr": "sum(increase(circleguard_auth_login_success_total[1m]))", "legendFormat": "Exitosos" },
+            { "expr": "sum(increase(circleguard_auth_login_failed_total[1m]))", "legendFormat": "Fallidos" }
+          ]
+        },
+        {
+          "id": 22, "title": "Gateway: Escaneos QR por minuto", "type": "timeseries",
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 7 },
+          "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" }, "custom": { "lineWidth": 2, "fillOpacity": 10 } } },
+          "targets": [
+            { "expr": "sum(increase(circleguard_gateway_qr_scans_total{status=\"valid\"}[1m]))", "legendFormat": "Validos" },
+            { "expr": "sum(increase(circleguard_gateway_qr_scans_total{status=\"invalid\"}[1m]))", "legendFormat": "Invalidos" }
+          ]
+        },
+        {
+          "id": 23, "title": "Promotion: Usuarios en Cuarentena", "type": "stat",
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "gridPos": { "h": 4, "w": 6, "x": 0, "y": 15 },
+          "options": { "colorMode": "background", "reduceOptions": { "calcs": ["lastNotNull"] } },
+          "fieldConfig": { "defaults": { "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 5 }, { "color": "red", "value": 20 }] } } },
+          "targets": [{ "expr": "sum(circleguard_promotion_fenced_users_total)", "legendFormat": "Usuarios Fenced" }]
+        },
+        {
+          "id": 24, "title": "Form: Encuestas Sintomaticas", "type": "stat",
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "gridPos": { "h": 4, "w": 6, "x": 6, "y": 15 },
+          "options": { "colorMode": "background", "reduceOptions": { "calcs": ["lastNotNull"] } },
+          "fieldConfig": { "defaults": { "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 10 }, { "color": "red", "value": 50 }] } } },
+          "targets": [{ "expr": "sum(circleguard_form_symptomatic_surveys_total)", "legendFormat": "Encuestas Sintomaticas" }]
+        },
+        { "id": 30, "type": "row", "title": "HTTP Latencia y Throughput", "collapsed": false, "gridPos": { "h": 1, "w": 24, "x": 0, "y": 19 } },
+        {
+          "id": 31, "title": "HTTP Requests por segundo por servicio", "type": "timeseries",
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 20 },
+          "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" }, "custom": { "lineWidth": 2 }, "unit": "reqps" } },
+          "targets": [{ "expr": "sum by (kubernetes_service_name) (rate(http_server_requests_seconds_count[1m]))", "legendFormat": "{{kubernetes_service_name}}" }]
+        },
+        {
+          "id": 32, "title": "Latencia P95 por servicio (ms)", "type": "timeseries",
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 20 },
+          "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" }, "custom": { "lineWidth": 2 }, "unit": "ms" } },
+          "targets": [{ "expr": "histogram_quantile(0.95, sum by (le, kubernetes_service_name) (rate(http_server_requests_seconds_bucket[1m]))) * 1000", "legendFormat": "P95 {{kubernetes_service_name}}" }]
+        },
+        { "id": 40, "type": "row", "title": "JVM Memoria y Threads", "collapsed": false, "gridPos": { "h": 1, "w": 24, "x": 0, "y": 28 } },
+        {
+          "id": 41, "title": "JVM Heap Used por servicio", "type": "timeseries",
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 29 },
+          "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" }, "custom": { "lineWidth": 2, "fillOpacity": 10 }, "unit": "bytes" } },
+          "targets": [{ "expr": "sum by (kubernetes_service_name) (jvm_memory_used_bytes{area=\"heap\"})", "legendFormat": "Heap {{kubernetes_service_name}}" }]
+        },
+        {
+          "id": 42, "title": "JVM Threads Live por servicio", "type": "timeseries",
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 29 },
+          "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" }, "custom": { "lineWidth": 2 }, "unit": "short" } },
+          "targets": [{ "expr": "sum by (kubernetes_service_name) (jvm_threads_live_threads)", "legendFormat": "Threads {{kubernetes_service_name}}" }]
+        }
+      ],
+      "refresh": "5s",
+      "schemaVersion": 36,
+      "style": "dark",
+      "tags": ["circleguard", "observability"],
+      "time": { "from": "now-15m", "to": "now" },
+      "timezone": "browser",
+      "title": "CircleGuard Observability Dashboard",
+      "uid": "circleguard-business",
+      "version": 2
+    }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grafana
+  namespace: stage
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: grafana
+  template:
+    metadata:
+      labels:
+        app: grafana
+    spec:
+      containers:
+        - name: grafana
+          image: grafana/grafana:10.4.1
+          ports:
+            - containerPort: 3000
+          volumeMounts:
+            - name: datasources
+              mountPath: /etc/grafana/provisioning/datasources
+            - name: providers
+              mountPath: /etc/grafana/provisioning/dashboards
+            - name: dashboards
+              mountPath: /var/lib/grafana/dashboards
+      volumes:
+        - name: datasources
+          configMap:
+            name: grafana-datasources
+        - name: providers
+          configMap:
+            name: grafana-dashboards-provider
+        - name: dashboards
+          configMap:
+            name: grafana-dashboards
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana
+  namespace: stage
+spec:
+  selector:
+    app: grafana
+  ports:
+    - port: 3000
+      targetPort: 3000
+  type: ClusterIP
