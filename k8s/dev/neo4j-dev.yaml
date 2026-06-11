@@ -38,8 +38,6 @@ spec:
           env:
             - name: NEO4J_AUTH
               value: "neo4j/password"
-            - name: NEO4J_PLUGINS
-              value: "[]"
             - name: NEO4J_server_memory_heap_initial__size
               value: "256m"
             - name: NEO4J_server_memory_heap_max__size
@@ -54,20 +52,24 @@ spec:
           volumeMounts:
             - name: data
               mountPath: /data
+          # Neo4j CE first-boot initialises the database: ~90-180s on AKS.
+          # readinessProbe: window = 30 + (30 * 10) = 330s — covers first boot.
+          # livenessProbe: only fires after 360s so the pod is never killed while
+          # Neo4j is still initialising.
           readinessProbe:
             httpGet:
               path: /
               port: 7474
-            initialDelaySeconds: 60
+            initialDelaySeconds: 30
             periodSeconds: 10
-            failureThreshold: 12
+            failureThreshold: 30
           livenessProbe:
             httpGet:
               path: /
               port: 7474
-            initialDelaySeconds: 90
-            periodSeconds: 15
-            failureThreshold: 5
+            initialDelaySeconds: 360
+            periodSeconds: 30
+            failureThreshold: 3
       volumes:
         - name: data
           persistentVolumeClaim:
