@@ -16,15 +16,15 @@ env:
   DEV_REPO: ThomasBrueck/finalproject-ingesoftv-dev
 
 jobs:
-  e2e:
-    name: E2E Tests
+  test-suite:
+    name: Complete Test Suite
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout ops repo (E2E test code)
+      - name: Checkout ops repo
         uses: actions/checkout@v4
 
-      - name: Checkout dev repo (service source code)
+      - name: Checkout dev repo
         uses: actions/checkout@v4
         with:
           repository: ${{ env.DEV_REPO }}
@@ -62,6 +62,7 @@ jobs:
           export DEV_REPO_PATH=${{ github.workspace }}/app
           docker compose up -d --wait
 
+      # ── Phase 1: E2E Tests ──────────────────────────────
       - name: Run E2E tests
         run: |
           cd tests/e2e
@@ -75,6 +76,42 @@ jobs:
           export FILE_SERVICE_URL=http://localhost:8085
           ./gradlew test --no-daemon
 
+      - name: Upload E2E test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-test-results-${{ github.run_id }}
+          path: tests/e2e/build/reports/
+
+      # ── Phase 2: Performance Tests (Locust) ────────────
+      - name: Run Locust performance tests
+        if: success()
+        run: |
+          chmod +x tests/performance/run-locust.sh
+          ./tests/performance/run-locust.sh http://localhost:8080 10 2 60s
+
+      - name: Upload Locust reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: locust-results-${{ github.run_id }}
+          path: tests/performance/build/reports/
+
+      # ── Phase 3: Security Tests (OWASP ZAP) ────────────
+      - name: Run OWASP ZAP security scan
+        if: success()
+        run: |
+          chmod +x tests/security/zap-scan.sh
+          ./tests/security/zap-scan.sh http://localhost:8083
+
+      - name: Upload ZAP reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: zap-results-${{ github.run_id }}
+          path: tests/security/build/reports/
+
+      # ── Collect logs on failure ─────────────────────────
       - name: Collect logs on failure
         if: failure()
         run: |
@@ -83,13 +120,14 @@ jobs:
           docker compose logs --tail=200 > build/reports/logs/service-logs.txt
           docker compose ps >> build/reports/logs/service-ps.txt
 
-      - name: Upload test reports
-        if: always()
+      - name: Upload failure logs
+        if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: e2e-test-results-${{ github.run_id }}
-          path: tests/e2e/build/reports/
+          name: failure-logs-${{ github.run_id }}
+          path: tests/e2e/build/reports/logs/
 
+      # ── Cleanup ──────────────────────────────────────
       - name: Stop containers
         if: always()
         run: |
