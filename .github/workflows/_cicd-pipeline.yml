@@ -260,6 +260,75 @@ jobs:
              exit 1)
 
   # ─────────────────────────────────────────────────────────────────────────────
+  # E2E — Full-stack tests contra Stage (bloqueante para PROD)
+  #
+  # Corre después del deploy a STAGE, verifica integración entre todos los
+  # servicios usando port-forward al namespace stage en AKS.
+  # Si falla → PROD no se despliega.
+  # ─────────────────────────────────────────────────────────────────────────────
+  run-e2e:
+    name: E2E Tests (contra Stage)
+    needs: [ci, deploy-stage]
+    if: success() && inputs.run-cd
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout dev repo
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ vars.DEV_REPO }}
+          ref: ${{ inputs.dev-branch }}
+          token: ${{ secrets.DEV_REPO_TOKEN }}
+          path: app
+          fetch-depth: 0
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: temurin
+          cache: gradle
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+      - name: Set AKS context
+        uses: azure/aks-set-context@v3
+        with:
+          resource-group: ${{ env.AKS_RG }}
+          cluster-name: ${{ env.AKS_CLUSTER }}
+      - name: Port-forward services (background)
+        run: |
+          kubectl port-forward -n stage service/circleguard-auth-service 8180:80 &
+          kubectl port-forward -n stage service/circleguard-identity-service 8083:80 &
+          kubectl port-forward -n stage service/circleguard-promotion-service 8088:80 &
+          kubectl port-forward -n stage service/circleguard-notification-service 8082:80 &
+          kubectl port-forward -n stage service/circleguard-form-service 8086:80 &
+          kubectl port-forward -n stage service/circleguard-gateway-service 8087:80 &
+          kubectl port-forward -n stage service/circleguard-dashboard-service 8084:80 &
+          kubectl port-forward -n stage service/circleguard-file-service 8085:80 &
+          sleep 8
+      - name: Run E2E tests
+        env:
+          AUTH_SERVICE_URL: http://localhost:8180
+          IDENTITY_SERVICE_URL: http://localhost:8083
+          PROMOTION_SERVICE_URL: http://localhost:8088
+          NOTIFICATION_SERVICE_URL: http://localhost:8082
+          FORM_SERVICE_URL: http://localhost:8086
+          GATEWAY_SERVICE_URL: http://localhost:8087
+          DASHBOARD_SERVICE_URL: http://localhost:8084
+          FILE_SERVICE_URL: http://localhost:8085
+        working-directory: app/e2e
+        run: ./gradlew test --no-daemon
+      - name: Upload E2E report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-report-${{ inputs.service-name }}-${{ github.run_id }}
+          path: app/e2e/build/reports/
+      - name: Kill port-forwards
+        if: always()
+        run: kill %1 %2 %3 %4 %5 %6 %7 %8 2>/dev/null || true
+
+  # ─────────────────────────────────────────────────────────────────────────────
   # CD PROD — aprobación manual requerida (CD CA2 + CD CA3: namespace production)
   #
   # Configura el Environment "production" en:
@@ -267,7 +336,7 @@ jobs:
   # ─────────────────────────────────────────────────────────────────────────────
   deploy-prod:
     name: Deploy → PROD (aprobación manual)
-    needs: [ci, deploy-stage]
+    needs: [ci, run-e2e, deploy-stage]
     if: inputs.run-cd
     runs-on: ubuntu-latest
     environment: production
@@ -360,7 +429,7 @@ jobs:
   # ─────────────────────────────────────────────────────────────────────────────
   notify-failure:
     name: Notify on Failure
-    needs: [ci, deploy-dev, deploy-stage, deploy-prod]
+    needs: [ci, deploy-dev, run-e2e, deploy-stage, deploy-prod]
     if: failure()
     runs-on: ubuntu-latest
     permissions:
@@ -373,6 +442,7 @@ jobs:
           SERVICE: ${{ inputs.service-name }}
           CI_RESULT: ${{ needs.ci.result }}
           DEV_RESULT: ${{ needs.deploy-dev.result }}
+          E2E_RESULT: ${{ needs.run-e2e.result }}
           STAGE_RESULT: ${{ needs.deploy-stage.result }}
           PROD_RESULT: ${{ needs.deploy-prod.result }}
           DEV_BRANCH: ${{ inputs.dev-branch }}
@@ -383,6 +453,7 @@ jobs:
             const stages = {
               'CI — Build & Scan': process.env.CI_RESULT,
               'Deploy → DEV': process.env.DEV_RESULT,
+              'E2E Tests (contra Stage)': process.env.E2E_RESULT,
               'Deploy → STAGE': process.env.STAGE_RESULT,
               'Deploy → PROD': process.env.PROD_RESULT,
             };
