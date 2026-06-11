@@ -18,6 +18,10 @@ spec:
       labels:
         app: circleguard-notification-service
     spec:
+      # Sin service links: K8s inyecta env vars <SERVICE>_PORT=tcp://... por cada
+      # Service del namespace (p.ej. LOGSTASH_PORT) que colisionan con la
+      # configuracion de la app (logback, Spring relaxed binding).
+      enableServiceLinks: false
       imagePullSecrets:
       - name: acr-secret
       containers:
@@ -28,8 +32,8 @@ spec:
         - containerPort: 8082
         resources:
           requests:
-            memory: "128Mi"
-            cpu: "1m"
+            memory: "256Mi"
+            cpu: "50m"
           limits:
             memory: "512Mi"
             cpu: "500m"

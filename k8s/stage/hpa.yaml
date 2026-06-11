@@ -9,7 +9,7 @@ spec:
     kind: Deployment
     name: circleguard-auth-service
   minReplicas: 1
-  maxReplicas: 10
+  maxReplicas: 3
   metrics:
   - type: Resource
     resource:
@@ -29,7 +29,7 @@ spec:
     kind: Deployment
     name: circleguard-dashboard-service
   minReplicas: 1
-  maxReplicas: 10
+  maxReplicas: 3
   metrics:
   - type: Resource
     resource:
@@ -49,7 +49,7 @@ spec:
     kind: Deployment
     name: circleguard-file-service
   minReplicas: 1
-  maxReplicas: 10
+  maxReplicas: 3
   metrics:
   - type: Resource
     resource:
@@ -69,7 +69,7 @@ spec:
     kind: Deployment
     name: circleguard-form-service
   minReplicas: 1
-  maxReplicas: 10
+  maxReplicas: 3
   metrics:
   - type: Resource
     resource:
@@ -89,7 +89,7 @@ spec:
     kind: Deployment
     name: circleguard-gateway-service
   minReplicas: 1
-  maxReplicas: 10
+  maxReplicas: 3
   metrics:
   - type: Resource
     resource:
@@ -109,7 +109,7 @@ spec:
     kind: Deployment
     name: circleguard-identity-service
   minReplicas: 1
-  maxReplicas: 10
+  maxReplicas: 3
   metrics:
   - type: Resource
     resource:
@@ -129,7 +129,7 @@ spec:
     kind: Deployment
     name: circleguard-notification-service
   minReplicas: 1
-  maxReplicas: 10
+  maxReplicas: 3
   metrics:
   - type: Resource
     resource:
@@ -149,7 +149,7 @@ spec:
     kind: Deployment
     name: circleguard-promotion-service
   minReplicas: 1
-  maxReplicas: 10
+  maxReplicas: 3
   metrics:
   - type: Resource
     resource:

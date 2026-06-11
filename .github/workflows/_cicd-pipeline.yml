@@ -199,10 +199,12 @@ jobs:
           kubectl apply -f k8s/dev/circleguard-ldap-deployment.yaml
           kubectl apply -f k8s/dev/redis-dev.yaml
           kubectl apply -f k8s/dev/neo4j-dev.yaml
+          kubectl apply -f k8s/dev/kafka-dev.yaml
           kubectl rollout status deployment/postgres-dev-postgresql -n dev --timeout=180s
           kubectl rollout status deployment/circleguard-ldap -n dev --timeout=120s
           kubectl rollout status deployment/redis-dev-master -n dev --timeout=60s
           kubectl rollout status deployment/neo4j-dev -n dev --timeout=600s
+          kubectl rollout status deployment/kafka-dev -n dev --timeout=300s
           kubectl delete deployment ${{ inputs.service-name }} -n dev --ignore-not-found=true
           kubectl wait --for=delete deployment/${{ inputs.service-name }} -n dev --timeout=60s 2>/dev/null || true
           kubectl apply -f k8s/dev/${{ inputs.service-name }}-deployment.yaml
@@ -210,15 +212,6 @@ jobs:
             (echo "=== POD DESCRIBE ===" && kubectl describe pod -l app=${{ inputs.service-name }} -n dev && \
              echo "=== POD LOGS ===" && kubectl logs -l app=${{ inputs.service-name }} -n dev --previous --tail=100 2>/dev/null; kubectl logs -l app=${{ inputs.service-name }} -n dev --tail=100 2>/dev/null || true && \
              exit 1)
-          echo "=== Deploying Observability Stack ==="
-          kubectl apply -f k8s/stage/observability/ -R
-          kubectl rollout status deployment/prometheus -n stage --timeout=120s || true
-          kubectl rollout status deployment/grafana -n stage --timeout=120s || true
-          kubectl rollout status deployment/elasticsearch -n stage --timeout=120s || true
-          kubectl rollout status deployment/logstash -n stage --timeout=120s || true
-          kubectl rollout status deployment/kibana -n stage --timeout=120s || true
-          kubectl rollout status deployment/jaeger -n stage --timeout=120s || true
-          kubectl rollout status deployment/alertmanager -n stage --timeout=120s || true
 
   # ─────────────────────────────────────────────────────────────────────────────
   # CD STAGE — automático después de DEV (CD CA1 + CD CA3: namespace stage)
@@ -280,6 +273,22 @@ jobs:
           kubectl rollout status deployment/kibana -n stage --timeout=120s || true
           kubectl rollout status deployment/jaeger -n stage --timeout=120s || true
           kubectl rollout status deployment/alertmanager -n stage --timeout=120s || true
+
+      # Seguridad (Requisito 8): TLS para servicios expuestos públicamente.
+      # ingress-nginx (manifiesto oficial) + certificado autofirmado + Ingress
+      # con hosts gateway/grafana. Idempotente: apply no recrea lo existente.
+      - name: Deploy TLS Ingress (gateway + grafana)
+        run: |
+          kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.11.5/deploy/static/provider/cloud/deploy.yaml
+          kubectl rollout status deployment/ingress-nginx-controller -n ingress-nginx --timeout=180s || true
+          if ! kubectl get secret circleguard-tls -n stage >/dev/null 2>&1; then
+            openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+              -keyout /tmp/tls.key -out /tmp/tls.crt \
+              -subj "/CN=gateway.circleguard.local/O=CircleGuard" \
+              -addext "subjectAltName=DNS:gateway.circleguard.local,DNS:grafana.circleguard.local"
+            kubectl create secret tls circleguard-tls --key /tmp/tls.key --cert /tmp/tls.crt -n stage
+          fi
+          kubectl apply -f k8s/stage/ingress.yaml
 
   # ─────────────────────────────────────────────────────────────────────────────
   # E2E — Full-stack tests contra Stage (bloqueante para PROD)
@@ -482,15 +491,6 @@ jobs:
             (echo "=== POD DESCRIBE ===" && kubectl describe pod -l app=${{ inputs.service-name }} -n production && \
              echo "=== POD LOGS ===" && kubectl logs -l app=${{ inputs.service-name }} -n production --previous --tail=100 2>/dev/null; kubectl logs -l app=${{ inputs.service-name }} -n production --tail=100 2>/dev/null || true && \
              exit 1)
-          echo "=== Deploying Observability Stack ==="
-          kubectl apply -f k8s/stage/observability/ -R
-          kubectl rollout status deployment/prometheus -n stage --timeout=120s || true
-          kubectl rollout status deployment/grafana -n stage --timeout=120s || true
-          kubectl rollout status deployment/elasticsearch -n stage --timeout=120s || true
-          kubectl rollout status deployment/logstash -n stage --timeout=120s || true
-          kubectl rollout status deployment/kibana -n stage --timeout=120s || true
-          kubectl rollout status deployment/jaeger -n stage --timeout=120s || true
-          kubectl rollout status deployment/alertmanager -n stage --timeout=120s || true
 
       # CD CA: tag SemVer automático sobre el código desplegado (SCRUM-33)
       # Usa el GITHUB_TOKEN del run (con contents: write) para empujar el tag al
@@ -515,6 +515,43 @@ jobs:
           else
             echo "::warning::No se pudo crear el tag $TAG. El deploy a producción fue exitoso; revisa que el token tenga contents: write."
           fi
+
+      # Change Management: Release Notes automáticas desde Conventional Commits.
+      # Genera release-notes.md (scripts/generate-release-notes.sh) y publica un
+      # GitHub Release en el repo dev asociado al tag <servicio>/vX.Y.Z.
+      - name: Generate Release Notes + GitHub Release
+        if: needs.ci.outputs.version != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SERVICE_NAME: ${{ inputs.service-name }}
+          IMAGE_TAG: ${{ needs.ci.outputs.version }}
+        run: |
+          export DEV_COMMIT=$(git -C app rev-parse HEAD)
+          bash scripts/generate-release-notes.sh
+          TAG="${SERVICE_NAME}/v${IMAGE_TAG}"
+          BODY=$(jq -Rs . < release-notes.md)
+          HTTP_CODE=$(curl -s -o /tmp/release-resp.json -w "%{http_code}" \
+            -X POST \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ vars.DEV_REPO }}/releases" \
+            -d "{\"tag_name\":\"${TAG}\",\"name\":\"${SERVICE_NAME} v${IMAGE_TAG}\",\"body\":${BODY}}")
+          if [ "$HTTP_CODE" = "201" ]; then
+            echo "GitHub Release publicado: ${TAG}"
+          elif grep -q "already_exists" /tmp/release-resp.json; then
+            echo "El release ${TAG} ya existe; no se recrea."
+          else
+            echo "::warning::No se pudo crear el GitHub Release (HTTP ${HTTP_CODE}). Las release notes están en el artifact."
+            cat /tmp/release-resp.json
+          fi
+
+      - name: Upload Release Notes artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-notes-${{ inputs.service-name }}-${{ github.run_id }}
+          path: release-notes.md
+          if-no-files-found: ignore
 
   # ─────────────────────────────────────────────────────────────────────────────
   # NOTIFICACIÓN DE FALLOS (SCRUM-34)

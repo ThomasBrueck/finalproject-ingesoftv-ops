@@ -36,6 +36,10 @@ metadata:
     app: postgres-dev-postgresql
 spec:
   replicas: 1
+  # Recreate: con PVC ReadWriteOnce un RollingUpdate genera Multi-Attach
+  # (el pod nuevo no puede montar el volumen mientras el viejo vive).
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: postgres-dev-postgresql

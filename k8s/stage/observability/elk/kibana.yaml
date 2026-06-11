@@ -21,16 +21,19 @@ spec:
         env:
         - name: ELASTICSEARCH_HOSTS
           value: "http://elasticsearch:9200"
+        # Heap de Node por defecto excede 512Mi → exit 134 (V8 OOM, SIGABRT).
+        - name: NODE_OPTIONS
+          value: "--max-old-space-size=700"
         ports:
         - containerPort: 5601
           name: web
         resources:
           limits:
             cpu: "500m"
-            memory: "512Mi"
+            memory: "1Gi"
           requests:
             cpu: "100m"
-            memory: "256Mi"
+            memory: "512Mi"
 ---
 apiVersion: v1
 kind: Service

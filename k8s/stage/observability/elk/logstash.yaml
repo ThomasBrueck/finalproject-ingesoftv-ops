@@ -37,6 +37,10 @@ spec:
       containers:
       - name: logstash
         image: docker.elastic.co/logstash/logstash:8.13.4
+        env:
+        # Heap por defecto de Logstash = 1g > limit del contenedor → OOMKilled.
+        - name: LS_JAVA_OPTS
+          value: "-Xms256m -Xmx256m"
         ports:
         - containerPort: 5000
           name: log-tcp
@@ -46,10 +50,10 @@ spec:
         resources:
           limits:
             cpu: "500m"
-            memory: "512Mi"
+            memory: "768Mi"
           requests:
             cpu: "100m"
-            memory: "256Mi"
+            memory: "384Mi"
       volumes:
       - name: config-volume
         configMap:

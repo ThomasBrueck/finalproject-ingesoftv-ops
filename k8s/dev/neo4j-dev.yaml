@@ -19,6 +19,10 @@ metadata:
     app: neo4j-dev
 spec:
   replicas: 1
+  # Recreate: con PVC ReadWriteOnce un RollingUpdate genera Multi-Attach
+  # (el pod nuevo no puede montar el volumen mientras el viejo vive).
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: neo4j-dev
@@ -27,6 +31,10 @@ spec:
       labels:
         app: neo4j-dev
     spec:
+      # Sin esto K8s inyecta NEO4J_DEV_SERVICE_PORT (service link del Service
+      # "neo4j-dev") y Neo4j 5 la parsea como setting "DEV.SERVICE.PORT" →
+      # "Unrecognized setting" → crash loop con strict validation.
+      enableServiceLinks: false
       containers:
         - name: neo4j
           image: neo4j:5-community
