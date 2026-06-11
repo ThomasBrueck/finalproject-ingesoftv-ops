@@ -55,13 +55,13 @@ jobs:
         run: |
           cd app/e2e
           export DEV_REPO_PATH=${{ github.workspace }}/app
-          docker compose build --parallel
+          docker compose -f docker-compose-e2e.yml build --parallel
 
       - name: Start services
         run: |
           cd app/e2e
           export DEV_REPO_PATH=${{ github.workspace }}/app
-          docker compose up -d --wait
+          docker compose -f docker-compose-e2e.yml up -d --wait
 
       # Phase 1: E2E Tests
       - name: Run E2E tests
@@ -152,7 +152,7 @@ jobs:
         run: |
           cd app/e2e
           mkdir -p build/reports/logs
-          docker compose logs --tail=200 > build/reports/logs/service-logs.txt
+          docker compose -f docker-compose-e2e.yml logs --tail=200 > build/reports/logs/service-logs.txt
           docker compose ps >> build/reports/logs/service-ps.txt
 
       - name: Upload failure logs
@@ -167,4 +167,4 @@ jobs:
         if: always()
         run: |
           cd app/e2e
-          docker compose down -v
+          docker compose -f docker-compose-e2e.yml down -v
