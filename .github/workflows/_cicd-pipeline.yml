@@ -210,11 +210,15 @@ jobs:
             (echo "=== POD DESCRIBE ===" && kubectl describe pod -l app=${{ inputs.service-name }} -n dev && \
              echo "=== POD LOGS ===" && kubectl logs -l app=${{ inputs.service-name }} -n dev --previous --tail=100 2>/dev/null; kubectl logs -l app=${{ inputs.service-name }} -n dev --tail=100 2>/dev/null || true && \
              exit 1)
-          echo "=== Deploying Observability Stack (Prometheus + Grafana) ==="
-          kubectl apply -f k8s/stage/observability/prometheus.yaml
-          kubectl apply -f k8s/stage/observability/grafana.yaml
+          echo "=== Deploying Observability Stack ==="
+          kubectl apply -f k8s/stage/observability/ -R
           kubectl rollout status deployment/prometheus -n stage --timeout=120s || true
           kubectl rollout status deployment/grafana -n stage --timeout=120s || true
+          kubectl rollout status deployment/elasticsearch -n stage --timeout=120s || true
+          kubectl rollout status deployment/logstash -n stage --timeout=120s || true
+          kubectl rollout status deployment/kibana -n stage --timeout=120s || true
+          kubectl rollout status deployment/jaeger -n stage --timeout=120s || true
+          kubectl rollout status deployment/alertmanager -n stage --timeout=120s || true
 
   # ─────────────────────────────────────────────────────────────────────────────
   # CD STAGE — automático después de DEV (CD CA1 + CD CA3: namespace stage)
@@ -267,11 +271,15 @@ jobs:
             (echo "=== POD DESCRIBE ===" && kubectl describe pod -l app=${{ inputs.service-name }} -n stage && \
              echo "=== POD LOGS ===" && kubectl logs -l app=${{ inputs.service-name }} -n stage --previous --tail=100 2>/dev/null; kubectl logs -l app=${{ inputs.service-name }} -n stage --tail=100 2>/dev/null || true && \
              exit 1)
-          echo "=== Deploying Observability Stack (Prometheus + Grafana) ==="
-          kubectl apply -f k8s/stage/observability/prometheus.yaml
-          kubectl apply -f k8s/stage/observability/grafana.yaml
+          echo "=== Deploying Observability Stack ==="
+          kubectl apply -f k8s/stage/observability/ -R
           kubectl rollout status deployment/prometheus -n stage --timeout=120s || true
           kubectl rollout status deployment/grafana -n stage --timeout=120s || true
+          kubectl rollout status deployment/elasticsearch -n stage --timeout=120s || true
+          kubectl rollout status deployment/logstash -n stage --timeout=120s || true
+          kubectl rollout status deployment/kibana -n stage --timeout=120s || true
+          kubectl rollout status deployment/jaeger -n stage --timeout=120s || true
+          kubectl rollout status deployment/alertmanager -n stage --timeout=120s || true
 
   # ─────────────────────────────────────────────────────────────────────────────
   # E2E — Full-stack tests contra Stage (bloqueante para PROD)
@@ -474,11 +482,15 @@ jobs:
             (echo "=== POD DESCRIBE ===" && kubectl describe pod -l app=${{ inputs.service-name }} -n production && \
              echo "=== POD LOGS ===" && kubectl logs -l app=${{ inputs.service-name }} -n production --previous --tail=100 2>/dev/null; kubectl logs -l app=${{ inputs.service-name }} -n production --tail=100 2>/dev/null || true && \
              exit 1)
-          echo "=== Deploying Observability Stack (Prometheus + Grafana) ==="
-          kubectl apply -f k8s/stage/observability/prometheus.yaml
-          kubectl apply -f k8s/stage/observability/grafana.yaml
+          echo "=== Deploying Observability Stack ==="
+          kubectl apply -f k8s/stage/observability/ -R
           kubectl rollout status deployment/prometheus -n stage --timeout=120s || true
           kubectl rollout status deployment/grafana -n stage --timeout=120s || true
+          kubectl rollout status deployment/elasticsearch -n stage --timeout=120s || true
+          kubectl rollout status deployment/logstash -n stage --timeout=120s || true
+          kubectl rollout status deployment/kibana -n stage --timeout=120s || true
+          kubectl rollout status deployment/jaeger -n stage --timeout=120s || true
+          kubectl rollout status deployment/alertmanager -n stage --timeout=120s || true
 
       # CD CA: tag SemVer automático sobre el código desplegado (SCRUM-33)
       # Usa el GITHUB_TOKEN del run (con contents: write) para empujar el tag al
