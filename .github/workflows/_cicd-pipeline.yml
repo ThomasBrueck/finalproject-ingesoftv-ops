@@ -72,7 +72,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: ThomasBrueck/finalproject-ingesoftv-ops
-          ref: master
+          ref: ${{ github.head_ref || github.ref_name }}
 
       - name: Checkout dev repo (código fuente)
         uses: actions/checkout@v4
@@ -174,7 +174,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: ThomasBrueck/finalproject-ingesoftv-ops
-          ref: master
+          ref: ${{ github.head_ref || github.ref_name }}
 
       - name: Azure Login
         uses: azure/login@v2
@@ -222,7 +222,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: ThomasBrueck/finalproject-ingesoftv-ops
-          ref: master
+          ref: ${{ github.head_ref || github.ref_name }}
 
       - name: Azure Login
         uses: azure/login@v2
@@ -308,25 +308,32 @@ jobs:
         working-directory: app/e2e
         run: |
           echo "=== Starting Port-Forwards ==="
-          kubectl port-forward -n stage service/circleguard-auth-service 8180:80 >/dev/null 2>&1 &
+          mkdir -p /tmp/pf-logs
+          kubectl port-forward -n stage service/circleguard-auth-service 8180:80 >/tmp/pf-logs/auth.log 2>&1 &
           echo $! > /tmp/pf.pids
-          kubectl port-forward -n stage service/circleguard-identity-service 8083:80 >/dev/null 2>&1 &
+          kubectl port-forward -n stage service/circleguard-identity-service 8083:80 >/tmp/pf-logs/identity.log 2>&1 &
           echo $! >> /tmp/pf.pids
-          kubectl port-forward -n stage service/circleguard-promotion-service 8088:80 >/dev/null 2>&1 &
+          kubectl port-forward -n stage service/circleguard-promotion-service 8088:80 >/tmp/pf-logs/promotion.log 2>&1 &
           echo $! >> /tmp/pf.pids
-          kubectl port-forward -n stage service/circleguard-notification-service 8082:80 >/dev/null 2>&1 &
+          kubectl port-forward -n stage service/circleguard-notification-service 8082:80 >/tmp/pf-logs/notification.log 2>&1 &
           echo $! >> /tmp/pf.pids
-          kubectl port-forward -n stage service/circleguard-form-service 8086:80 >/dev/null 2>&1 &
+          kubectl port-forward -n stage service/circleguard-form-service 8086:80 >/tmp/pf-logs/form.log 2>&1 &
           echo $! >> /tmp/pf.pids
-          kubectl port-forward -n stage service/circleguard-gateway-service 8087:80 >/dev/null 2>&1 &
+          kubectl port-forward -n stage service/circleguard-gateway-service 8087:80 >/tmp/pf-logs/gateway.log 2>&1 &
           echo $! >> /tmp/pf.pids
-          kubectl port-forward -n stage service/circleguard-dashboard-service 8084:80 >/dev/null 2>&1 &
+          kubectl port-forward -n stage service/circleguard-dashboard-service 8084:80 >/tmp/pf-logs/dashboard.log 2>&1 &
           echo $! >> /tmp/pf.pids
-          kubectl port-forward -n stage service/circleguard-file-service 8085:80 >/dev/null 2>&1 &
+          kubectl port-forward -n stage service/circleguard-file-service 8085:80 >/tmp/pf-logs/file.log 2>&1 &
           echo $! >> /tmp/pf.pids
           
           echo "Waiting 8 seconds for port-forwards to initialize..."
           sleep 8
+          
+          echo "=== Port-Forward Initialization Logs ==="
+          for f in /tmp/pf-logs/*.log; do
+            echo "--- $f ---"
+            cat "$f"
+          done
           
           echo "=== Running E2E Tests ==="
           chmod +x gradlew
@@ -375,7 +382,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: ThomasBrueck/finalproject-ingesoftv-ops
-          ref: master
+          ref: ${{ github.head_ref || github.ref_name }}
 
       - name: Checkout dev repo (para tag de versión)
         uses: actions/checkout@v4

@@ -153,7 +153,7 @@ jobs:
           cd app/e2e
           mkdir -p build/reports/logs
           docker compose -f docker-compose-e2e.yml logs --tail=200 > build/reports/logs/service-logs.txt
-          docker compose ps >> build/reports/logs/service-ps.txt
+          docker compose -f docker-compose-e2e.yml ps >> build/reports/logs/service-ps.txt
 
       - name: Upload failure logs
         if: failure()
