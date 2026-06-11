@@ -295,21 +295,7 @@ jobs:
         with:
           resource-group: ${{ env.AKS_RG }}
           cluster-name: ${{ env.AKS_CLUSTER }}
-      - name: Port-forward services (background)
-        run: |
-          kubectl port-forward -n stage service/circleguard-auth-service 8180:80 &
-          kubectl port-forward -n stage service/circleguard-identity-service 8083:80 &
-          kubectl port-forward -n stage service/circleguard-promotion-service 8088:80 &
-          kubectl port-forward -n stage service/circleguard-notification-service 8082:80 &
-          kubectl port-forward -n stage service/circleguard-form-service 8086:80 &
-          kubectl port-forward -n stage service/circleguard-gateway-service 8087:80 &
-          kubectl port-forward -n stage service/circleguard-dashboard-service 8084:80 &
-          kubectl port-forward -n stage service/circleguard-file-service 8085:80 &
-          sleep 8
-      - name: Make gradlew executable
-        working-directory: app/e2e
-        run: chmod +x gradlew
-      - name: Run E2E tests
+      - name: Run E2E tests (with port-forwards)
         env:
           AUTH_SERVICE_URL: http://localhost:8180
           IDENTITY_SERVICE_URL: http://localhost:8083
@@ -320,7 +306,43 @@ jobs:
           DASHBOARD_SERVICE_URL: http://localhost:8084
           FILE_SERVICE_URL: http://localhost:8085
         working-directory: app/e2e
-        run: ./gradlew test --no-daemon
+        run: |
+          echo "=== Starting Port-Forwards ==="
+          kubectl port-forward -n stage service/circleguard-auth-service 8180:80 >/dev/null 2>&1 &
+          echo $! > /tmp/pf.pids
+          kubectl port-forward -n stage service/circleguard-identity-service 8083:80 >/dev/null 2>&1 &
+          echo $! >> /tmp/pf.pids
+          kubectl port-forward -n stage service/circleguard-promotion-service 8088:80 >/dev/null 2>&1 &
+          echo $! >> /tmp/pf.pids
+          kubectl port-forward -n stage service/circleguard-notification-service 8082:80 >/dev/null 2>&1 &
+          echo $! >> /tmp/pf.pids
+          kubectl port-forward -n stage service/circleguard-form-service 8086:80 >/dev/null 2>&1 &
+          echo $! >> /tmp/pf.pids
+          kubectl port-forward -n stage service/circleguard-gateway-service 8087:80 >/dev/null 2>&1 &
+          echo $! >> /tmp/pf.pids
+          kubectl port-forward -n stage service/circleguard-dashboard-service 8084:80 >/dev/null 2>&1 &
+          echo $! >> /tmp/pf.pids
+          kubectl port-forward -n stage service/circleguard-file-service 8085:80 >/dev/null 2>&1 &
+          echo $! >> /tmp/pf.pids
+          
+          echo "Waiting 8 seconds for port-forwards to initialize..."
+          sleep 8
+          
+          echo "=== Running E2E Tests ==="
+          chmod +x gradlew
+          
+          set +e
+          ./gradlew test --no-daemon
+          TEST_EXIT_CODE=$?
+          set -e
+          
+          echo "=== Cleaning up Port-Forwards ==="
+          if [ -f /tmp/pf.pids ]; then
+            xargs kill < /tmp/pf.pids 2>/dev/null || true
+            rm /tmp/pf.pids
+          fi
+          
+          exit $TEST_EXIT_CODE
       - name: Upload E2E report
         if: always()
         uses: actions/upload-artifact@v4
@@ -329,7 +351,11 @@ jobs:
           path: app/e2e/build/reports/
       - name: Kill port-forwards
         if: always()
-        run: kill %1 %2 %3 %4 %5 %6 %7 %8 2>/dev/null || true
+        run: |
+          if [ -f /tmp/pf.pids ]; then
+            xargs kill < /tmp/pf.pids 2>/dev/null || true
+            rm /tmp/pf.pids
+          fi
 
   # ─────────────────────────────────────────────────────────────────────────────
   # CD PROD — aprobación manual requerida (CD CA2 + CD CA3: namespace production)

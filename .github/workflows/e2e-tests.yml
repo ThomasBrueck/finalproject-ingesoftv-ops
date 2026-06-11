@@ -89,7 +89,7 @@ jobs:
         if: success()
         run: |
           chmod +x app/tests/performance/run-locust.sh
-          app/tests/performance/run-locust.sh http://localhost:8080 10 2 60s
+          app/tests/performance/run-locust.sh light
 
       - name: Upload Locust reports
         if: always()
