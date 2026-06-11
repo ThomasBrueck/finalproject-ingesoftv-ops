@@ -1,0 +1,46 @@
+# TLS para servicios expuestos públicamente (Requisito 8 — Seguridad).
+#
+# El controller ingress-nginx lo instala el pipeline (deploy-stage) desde el
+# manifiesto oficial. El secret `circleguard-tls` (certificado autofirmado para
+# el entorno académico; en producción real sería cert-manager + Let's Encrypt)
+# también lo genera el pipeline si no existe.
+#
+# Acceso:
+#   https://<IP-del-LB>/           (Host: gateway.circleguard.local)  → gateway
+#   https://<IP-del-LB>/grafana    (Host: grafana.circleguard.local)  → grafana
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: circleguard-ingress
+  namespace: stage
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - gateway.circleguard.local
+        - grafana.circleguard.local
+      secretName: circleguard-tls
+  rules:
+    - host: gateway.circleguard.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: circleguard-gateway-service
+                port:
+                  number: 80
+    - host: grafana.circleguard.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: grafana
+                port:
+                  number: 3000

@@ -13,6 +13,10 @@ spec:
       labels:
         app: circleguard-identity-service
     spec:
+      # Sin service links: K8s inyecta env vars <SERVICE>_PORT=tcp://... por cada
+      # Service del namespace (p.ej. LOGSTASH_PORT) que colisionan con la
+      # configuracion de la app (logback, Spring relaxed binding).
+      enableServiceLinks: false
       imagePullSecrets:
       - name: acr-secret
       containers:
@@ -23,8 +27,8 @@ spec:
         - containerPort: 8083
         resources:
           requests:
-            cpu: "250m"
-            memory: "512Mi"
+            cpu: "50m"
+            memory: "256Mi"
           limits:
             cpu: "500m"
             memory: "1Gi"
@@ -43,6 +47,10 @@ spec:
           value: "postgres"
         - name: SPRING_DATASOURCE_PASSWORD
           value: "supersecretpassword"
+        # IdentityVaultController emite eventos de auditoria por Kafka; sin el
+        # bootstrap el producer bloquea 60s (max.block.ms) contra localhost:9092.
+        - name: SPRING_KAFKA_BOOTSTRAP_SERVERS
+          value: "kafka-dev.dev.svc.cluster.local:9092"
         - name: JWT_SECRET
           value: "my-super-secret-dev-key-32-chars-long-12345678"
         - name: MANAGEMENT_HEALTH_DATASOURCE_ENABLED

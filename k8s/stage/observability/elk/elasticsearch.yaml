@@ -31,12 +31,14 @@ spec:
         - containerPort: 9300
           name: transport
         resources:
+          # ES 8 con heap 256m necesita >512Mi totales (off-heap + JVM):
+          # con limit 512Mi el kernel lo mata (OOMKilled, exit 137).
           limits:
             cpu: "1000m"
-            memory: "512Mi"
+            memory: "1Gi"
           requests:
             cpu: "100m"
-            memory: "256Mi"
+            memory: "512Mi"
 ---
 apiVersion: v1
 kind: Service
