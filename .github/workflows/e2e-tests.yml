@@ -98,7 +98,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: locust-results-${{ github.run_id }}
-          path: app/tests/performance/build/reports/
+          path: build/reports/performance/
 
       # Phase 3: Security Tests (OWASP ZAP)
       - name: Run OWASP ZAP security scan
@@ -112,7 +112,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: zap-results-${{ github.run_id }}
-          path: app/tests/security/build/reports/
+          path: build/reports/security/
 
       # Phase 4: HPA Verification (only in K8s environment with kubectl)
       - name: Verify HPA auto-scaling
@@ -146,7 +146,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: consolidated-report-${{ github.run_id }}
-          path: app/tests/build/reports/consolidated/
+          path: build/reports/consolidated/
 
       # Collect logs on failure
       - name: Collect logs on failure
