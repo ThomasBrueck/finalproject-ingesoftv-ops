@@ -1,158 +1,229 @@
-# 🛡️ CircleGuard Monorepo
+# 🛡️ CircleGuard — Repositorio de Operaciones (Ops / GitOps)
 
 **Absolute Privacy. High-Speed Containment. Secure Campus.**
 
-CircleGuard is a state-of-the-art university contact tracing and fencing system designed to identify interconnected contact groups ("Circles") and apply rapid health fences while preserving individual anonymity.
+CircleGuard es un sistema universitario de rastreo de contactos y "fencing" de salud que identifica grupos de contacto interconectados ("Círculos") y aplica cuarentenas rápidas preservando el anonimato individual.
+
+Este repositorio (**ops**) es la **fuente de verdad de la plataforma**: contiene la Infraestructura como Código (Terraform), los manifiestos de Kubernetes de los tres ambientes, el pipeline de CI/CD reutilizable, el stack de observabilidad y la documentación operativa. El código de los microservicios vive en el repo de aplicación `finalproject-ingesoftv-dev`.
+
+> Arquitectura GitOps de repositorios separados: este repo nunca contiene lógica de negocio; el repo dev nunca contiene manifiestos de infraestructura.
 
 ---
 
-## 🌟 Vision & Mission
+## 📑 Tabla de contenido
 
-Our vision is a university campus where health containment speed outpaces lab confirmation timelines without compromising student privacy. CircleGuard leverages campus-native intelligence—class schedules and WiFi infrastructure—to deliver a human-validated, graph-based protection ecosystem.
-
-### Key Differentiators
-- **Privacy-as-Code**: Zero real-name exposure outside a secure Health Center vault.
-- **Recursive Containment**: Status promotion cascades (Suspect → Probable → Confirmed) that trigger in milliseconds.
-- **Campus Integration**: Smart check-ins using existing WiFi AP triangulation and Bluetooth Low Energy (BLE).
-
----
-
-## 📊 Success Metrics
-
-| Metric | Target | Measurement |
-|:---|:---|:---|
-| **Containment Speed** | < 60 Seconds | Automated test of promotion engine cascade |
-| **Privacy Compliance** | 100% Anonymity | Penetration test on graph database (Zero real names) |
-| **Check-in Adoption** | > 70% | Analytics on scheduled class contact validation |
-| **False Positive Rate** | < 15% | Post-fence surveys of actual vs. suspected contact |
-| **System Uptime** | 99.5% | 7:00 AM – 10:00 PM (Academic Peak Hours) |
+1. [Arquitectura](#-arquitectura)
+2. [Estructura del repositorio](#-estructura-del-repositorio)
+3. [Stack tecnológico](#-stack-tecnológico)
+4. [Documentación completa del proyecto](#-documentación-completa-del-proyecto)
+5. [Manual de operaciones básico](#-manual-de-operaciones-básico)
+6. [Pipeline de CI/CD](#-pipeline-de-cicd)
+7. [Cumplimiento del taller](#-cumplimiento-del-taller)
 
 ---
 
-## 🏗️ Architecture Overview
+## 🏗️ Arquitectura
 
-CircleGuard follows a **Microservice Architecture** built on a **Hybrid Data Model**.
+CircleGuard es una **arquitectura de microservicios** (8 servicios Spring Boot) sobre un **modelo de datos híbrido** (PostgreSQL, Neo4j, Redis, Kafka, LDAP), desplegada en **Azure Kubernetes Service (AKS)**.
 
-### Core Engine
-1. **Status Promotion Machine**: Uses **Neo4j** for recursive graph traversals to identify contacts within a 14-day temporal window.
-2. **Anonymization Vault**: A segregated **PostgreSQL** vault handles salted-hash identity mapping, compliant with **FERPA** regulations.
-3. **Event-Driven Core**: **Apache Kafka** manages asynchronous status changes, audit logs, and notification dispatches.
+- **Diagramas:** `docs/arquitectura-infraestructura.drawio` (ábrelo en https://app.diagrams.net). Pestaña 1 = plataforma y CI/CD; pestaña 2 = servicios, datos y eventos.
+- **Un solo cluster, tres namespaces:** `dev` (integración + capa de datos compartida), `stage` (pre-producción + observabilidad), `production`.
+- **Entrada pública:** `ingress-nginx` con TLS termina HTTPS hacia el gateway y Grafana.
 
-### Services Directory
-- **Auth Service**: Dual-chain LDAP (University) / Local (Guest) auth with Dynamic RBAC.
-- **Identity Service**: Cryptographic vault for anonymizing real identities.
-- **Promotion Service**: The status engine (Recursive Graph Processing).
-- **Notification Service**: Multi-channel dispatcher (Push/Email/SMS).
-- **Form Service**: Dynamic health questionnaire engine.
-- **Gateway Service**: Campus entry validation via signed, time-limited QR tokens.
-- **Dashboard Service**: Geospatial hotspot analytics (Privacy-preserving).
-- **File Service**: Secure certificate and document storage (S3-compatible).
+### Microservicios y puertos
 
----
+| Servicio | Puerto | Datos / dependencias |
+|---|---|---|
+| gateway-service | 8087 | Redis (estado de salud para validar QR) |
+| auth-service | 8180 | PostgreSQL `auth` + LDAP · REST → identity (Bulkhead) |
+| identity-service | 8083 | PostgreSQL `identity` · Kafka (auditoría) |
+| promotion-service | 8088 | PostgreSQL `promotion` + Neo4j + Redis + Kafka |
+| form-service | 8086 | PostgreSQL `form` + Kafka |
+| dashboard-service | 8084 | PostgreSQL `dashboard` · REST → promotion |
+| notification-service | 8082 | Kafka (consumidor) · REST → auth |
+| file-service | 8085 | Almacenamiento de archivos |
 
-## 🛠️ Technical Stack
-
-| Layer | Technology | Rationale |
-|:---|:---|:---|
-| **Backend** | Spring Boot 4 / Java 21 | Enterprise-grade maturity & low-latency Jakarta EE support. |
-| **Graph DB** | Neo4j 5.26 | High-performance recursive traversals unreachable with SQL. |
-| **Relational DB**| PostgreSQL 16 | ACID compliant storage for identity and configuration. |
-| **Message Bus** | Apache Kafka 7.6 | Persistent, audit-trailed event log for status dispatches. |
-| **Caching** | Redis 7.2 | L2 distributed cache for rapid entry-gate status validation. |
-| **Mobile/Web** | Expo (React Native) | Unified codebase across iOS, Android, and Browser. |
-| **Infra** | Kubernetes | Orchestration for high availability and auto-scaling. |
+**Eventos Kafka:** `survey.submitted`, `promotion.status.changed`, `certificate.validated`, `audit.identity.accessed`.
 
 ---
 
-## 🗺️ Roadmap
+## 📂 Estructura del repositorio
 
-### Phase 1: MVP — The Intelligence Core (Current)
-- [x] Status Promotion Machine (Suspect → Probable → Confirmed).
-- [x] Temporal graph with 14-day TTL edges.
-- [x] Multi-channel fence notifications (Push/Email/SMS).
-- [ ] Health Center de-identification console.
-
-### Phase 2: Growth — Spatial Intelligence
-- [ ] WiFi AP triangulation integration.
-- [ ] Campus entry validation (Gatekeeper) QR integration.
-- [ ] LMS integration for "Remote Attendance" status automation.
-
-### Phase 3: Vision — Full Ecosystem
-- [ ] Off-campus circle detection via P2P Bluetooth.
-- [ ] Global Health Dashboard with hotspot visualization.
-- [ ] Lab API bridge for automated test result ingestion.
-
----
-
-## 💻 Local Development
-
-### 1. Infrastructure
-Ensure Docker is installed, then start the middleware stack:
-```bash
-docker-compose -f docker-compose.dev.yml up -d
 ```
-*Middleware includes: PostgreSQL, Neo4j, Kafka, Zookeeper, Redis, and OpenLDAP.*
-
-### 2. Build & Run
-CircleGuard uses Gradle for parallel builds across services:
-```bash
-# Start all microservices in parallel
-./gradlew bootRun --parallel
-
-# Start a specific service
-./gradlew :services:<service-name>:bootRun
-```
-
-### 3. API Exploration
-Every service exposes an OpenAPI 3.0 interface. Once running, visit:
-`http://localhost:<service-port>/swagger-ui/index.html`
-
----
-
-## 📱 Frontend Development
-
-The frontend is built using **Expo (React Native)**, supporting iOS, Android, and Web from a single codebase located in `/mobile`.
-
-### 1. Prerequisites
-Ensure you have Node.js installed and dependencies loaded:
-```bash
-cd mobile
-npm install
-```
-
-### 2. Run the Application
-You can run the app in various modes depending on your target platform:
-
-| Platform | Command | Notes |
-|:---|:---|:---|
-| **Development Menu** | `npm run start` | Opens the Expo Go start-up menu. |
-| **Android** | `npm run android` | Requires Android Studio / Emulator or a connected device. |
-| **iOS** | `npm run ios` | Requires macOS with Xcode / Simulator installed. |
-| **Web Browser** | `npm run web` | Launches the dashboard/app in your default browser. |
-
-### 3. Testing
-To run frontend unit and component tests:
-```bash
-npm run test
+.
+├── terraform/                      # Infraestructura como Código
+│   ├── modules/
+│   │   ├── azure_infrastructure/   # AKS + ACR + RG + AcrPull
+│   │   └── kubernetes_services/    # servicios de datos por ambiente
+│   └── environments/               # core, dev, stage, prod (backend remoto azurerm)
+├── k8s/                            # Manifiestos Kubernetes
+│   ├── dev/                        # 8 servicios + postgres/redis/neo4j/kafka/ldap
+│   ├── stage/                      # 8 servicios + observability/ + ingress TLS
+│   └── production/                 # 8 servicios
+├── .github/workflows/
+│   └── _cicd-pipeline.yml          # pipeline reutilizable (CI + CD a 3 ambientes)
+├── scripts/                        # compute-semver, generate-release-notes, infra start/stop
+├── docs/                           # diagramas, costos, manual de operaciones
+├── 01-metodologia-agil-branching.md
+├── 03-patrones-diseno.md
+└── ROLLBACK_PLAN.md
 ```
 
 ---
 
-## 🧪 Testing
+## 🛠️ Stack tecnológico
 
-We maintain high system integrity via multi-level testing:
-
-| Command | Scope |
-|:---|:---|
-| `./gradlew test` | Full system suite (Unit + Integration) |
-| `./gradlew :services:<name>:test` | Single service testing |
-
-**Note**: Integration tests use **Testcontainers** to spawn ephemeral Neo4j and PostgreSQL instances for zero-side-effect validation.
+| Capa | Tecnología |
+|---|---|
+| Backend | Spring Boot 3.4 / Java 21 |
+| Base relacional | PostgreSQL 17 (5 bases) |
+| Base de grafos | Neo4j 5 Community (rastreo de contactos) |
+| Caché | Redis 7 |
+| Bus de eventos | Apache Kafka 3.7 (modo KRaft) |
+| Directorio | OpenLDAP |
+| Orquestación | Kubernetes (AKS Free tier, 2× Standard_D2s_v3) |
+| Registro | Azure Container Registry (Basic) |
+| IaC | Terraform (backend remoto azurerm) |
+| CI/CD | GitHub Actions |
+| Calidad / Seguridad | SonarCloud · Trivy · OWASP ZAP |
+| Observabilidad | Prometheus · Grafana · ELK · Jaeger · Alertmanager |
 
 ---
 
-## 🔐 Privacy & Compliance
+## 📚 Documentación completa del proyecto
 
-- **FERPA Compliance**: Student identities are never stored in the contact graph.
-- **Right to be Forgotten**: Users can trigger complete data purging via the Identity Vault.
-- **Temporal Privacy**: All contact edges are automatically purged after 14 days.
+Toda la documentación está versionada en este repo:
+
+| Documento | Contenido |
+|---|---|
+| `01-metodologia-agil-branching.md` | Scrum, Jira, estrategia de branching (Trunk-Based en ops / GitHub Flow en dev), Conventional Commits, reglas de protección |
+| `03-patrones-diseno.md` | Patrones existentes (API Gateway, Repository, Service Layer, Pub/Sub) y añadidos (Bulkhead, Feature Toggle, Cache-Aside, External Configuration) |
+| `docs/arquitectura-infraestructura.drawio` | Diagramas de infraestructura y de aplicación |
+| `docs/MANUAL_OPERACIONES.md` | Manual de operaciones extendido |
+| `docs/COSTOS.md` | Inventario de recursos Azure, costo mensual (~$170) y estrategias de ahorro |
+| `ROLLBACK_PLAN.md` | Criterios de activación y procedimientos de rollback (app, infra, imagen, pipeline) |
+
+### Resumen por requisito del taller
+
+- **Metodología y branching** → `01-metodologia-agil-branching.md`
+- **Terraform (IaC)** → `terraform/` (módulos + ambientes + backend remoto)
+- **Patrones de diseño** → `03-patrones-diseno.md`
+- **CI/CD** → `.github/workflows/_cicd-pipeline.yml`
+- **Observabilidad** → `k8s/stage/observability/`
+- **Change Management / Release Notes** → `ROLLBACK_PLAN.md` + `scripts/generate-release-notes.sh`
+- **Costos / operación** → `docs/COSTOS.md`, `docs/MANUAL_OPERACIONES.md`
+
+---
+
+## 🔧 Manual de operaciones básico
+
+### 1. Acceso al cluster
+```bash
+az login
+az aks get-credentials -g circleguard-core-rg -n circleguard-aks
+kubectl get pods -n dev    # | -n stage | -n production
+```
+
+### 2. Encendido / apagado (ahorro de costos)
+```bash
+./scripts/infra-stop.sh     # detiene el VMSS del cluster
+./scripts/infra-start.sh    # arranca el VMSS y espera nodos Ready
+```
+
+### 3. Provisionar infraestructura (Terraform)
+```bash
+cd terraform/environments/core   # o dev | stage | prod
+terraform init                   # backend remoto azurerm
+terraform plan
+terraform apply
+```
+
+### 4. Despliegue
+El despliegue normal es **automático vía pipeline** (merge a master en el repo dev): CI → DEV → STAGE → E2E → aprobación manual → PROD.
+
+Despliegue manual de emergencia de un servicio:
+```bash
+kubectl apply -f k8s/<ambiente>/<servicio>-deployment.yaml
+kubectl rollout status deployment/<servicio> -n <ambiente>
+```
+
+### 5. Rollback (ver `ROLLBACK_PLAN.md`)
+```bash
+kubectl rollout undo deployment/<servicio> -n production
+# o a una versión específica del ACR:
+kubectl set image deployment/<servicio> \
+  <servicio>=circleguardacrcore.azurecr.io/circle-guard/<servicio>:vX.Y.Z -n production
+```
+
+### 6. Observabilidad (namespace stage)
+```bash
+kubectl port-forward -n stage svc/grafana 3000:3000        # http://localhost:3000
+kubectl port-forward -n stage svc/prometheus 9090:9090     # targets + alertas
+kubectl port-forward -n stage svc/kibana 5601:5601         # logs (índice circleguard-logs-*)
+kubectl port-forward -n stage svc/jaeger-query 16686:16686 # trazas
+```
+
+### 7. Bases de datos
+- **PostgreSQL** (`postgres-dev-postgresql.dev`): bases `circleguard_auth|dashboard|form|identity|promotion`.
+  ```bash
+  kubectl exec -it -n dev deploy/postgres-dev-postgresql -- psql -U postgres -d circleguard_auth
+  ```
+- **Neo4j** (`neo4j-dev.dev:7687`, usuario `neo4j`) · **Redis** (`redis-dev-master.dev:6379`) · **Kafka** (`kafka-dev.dev:9092`).
+
+### 8. Secretos
+Los secretos de cada ambiente (`circleguard-stage-secrets`, `circleguard-production-secrets`) los crea el pipeline en cada deploy. Las credenciales de CI viven como **GitHub Secrets**; ninguna está hardcodeada.
+
+### 9. Usuarios de prueba
+| Usuario | Password | Rol |
+|---|---|---|
+| `staff_guard` | `password` | GATE_STAFF |
+| `health_user` | `password` | HEALTH_CENTER |
+| `super_admin` | `password` | todos |
+
+### 10. Troubleshooting rápido
+| Síntoma | Acción |
+|---|---|
+| Pod `CrashLoopBackOff` | `kubectl logs <pod> -n <ns> --previous` |
+| Pod `Pending` ("Insufficient cpu") | revisar requests / apagar cargas no esenciales |
+| `Multi-Attach error` en PVC | los manifests usan `strategy: Recreate`; borrar pod colgado |
+| Crash "Unrecognized setting" / puerto `tcp://...` | service links de K8s → los manifests llevan `enableServiceLinks: false` |
+| "too many clients" en Postgres | pool HikariCP limitado a 3 + `max_connections=200` |
+
+---
+
+## 🚀 Pipeline de CI/CD
+
+`_cicd-pipeline.yml` es un workflow reutilizable invocado por cada servicio desde el repo dev. Etapas:
+
+1. **CI** — build (Gradle/JDK 21), pruebas, cobertura JaCoCo, versión semántica, build de imagen, push a ACR, **Trivy** (CRITICAL/HIGH bloqueante).
+2. **Deploy DEV** — automático; despliega capa de datos + servicio.
+3. **Deploy STAGE** — automático; despliega servicio + stack de observabilidad + Ingress TLS.
+4. **E2E** — 31 pruebas contra stage; **gate bloqueante** para producción.
+5. **Deploy PROD** — **aprobación manual** (GitHub Environment con revisores); al terminar crea tag `servicio/vX.Y.Z` + GitHub Release con notas automáticas.
+6. **notify-failure** — abre un GitHub Issue si cualquier etapa falla.
+
+SonarCloud (Quality Gate ≥80%) corre en un workflow aparte del repo dev, una vez por commit.
+
+---
+
+## ✅ Cumplimiento del taller
+
+| Sección | Estado | Dónde |
+|---|---|---|
+| 1. Ágil + Branching | ✅ | `01-metodologia-agil-branching.md`, Jira |
+| 2. Terraform (IaC) | ✅ | `terraform/` |
+| 3. Patrones de diseño | ✅ | `03-patrones-diseno.md` |
+| 4. CI/CD avanzado | ✅ | `.github/workflows/` |
+| 5. Pruebas completas | ✅ | repo dev (`e2e/`, `tests/`) |
+| 6. Change Mgmt + Release Notes | ✅ | `ROLLBACK_PLAN.md`, `scripts/` |
+| 7. Observabilidad | ✅ | `k8s/stage/observability/` |
+| 8. Seguridad | ✅ | Trivy, Secrets, RBAC, TLS |
+| 9. Documentación | ✅ | `docs/`, este README |
+
+---
+
+## 🔐 Privacidad y cumplimiento
+
+- **Cumplimiento FERPA:** las identidades reales nunca se almacenan en el grafo de contactos.
+- **Derecho al olvido:** purga completa de datos vía el Identity Vault.
+- **Privacidad temporal:** las aristas de contacto se purgan automáticamente tras 14 días.

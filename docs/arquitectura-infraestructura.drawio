@@ -1,0 +1,205 @@
+<mxfile host="app.diagrams.net" agent="CircleGuard" version="24.0.0">
+  <diagram name="1 - Infraestructura y CI-CD" id="page-infra">
+    <mxGraphModel dx="1422" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1550" pageHeight="1180" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="users" value="Usuarios / App móvil" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="700" y="20" width="170" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="gh" value="GitHub — Desarrollo y CI/CD" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;fontStyle=1;fontSize=14;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="40" y="80" width="1460" height="165" as="geometry" />
+        </mxCell>
+        <mxCell id="devrepo" value="Repo dev (GitHub Flow)&#10;8 microservicios + tests" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="70" y="125" width="280" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="opsrepo" value="Repo ops (Trunk-Based)&#10;Pipeline + manifiestos k8s + Terraform" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="390" y="125" width="290" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="actions" value="GitHub Actions (pipeline reutilizable)&#10;&#10;CI: build · test · JaCoCo · SemVer · Trivy&#10;SonarCloud (Quality Gate 80%)&#10;CD: DEV → STAGE → E2E → PROD (aprobación manual)&#10;Locust + ZAP · notify-failure (Issues)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="720" y="110" width="760" height="120" as="geometry" />
+        </mxCell>
+
+        <mxCell id="az" value="Azure Cloud — región eastus2" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;fontStyle=1;fontSize=14;fillColor=#e6f2ff;strokeColor=#0078d4;" vertex="1" parent="1">
+          <mxGeometry x="40" y="290" width="1460" height="860" as="geometry" />
+        </mxCell>
+
+        <mxCell id="tfstate" value="RG circleguard-tfstate-rg&#10;&#10;Storage cgtfstate99901&#10;Estado remoto Terraform&#10;(versionado · 1 key por ambiente)" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;direction=north;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="70" y="345" width="270" height="130" as="geometry" />
+        </mxCell>
+
+        <mxCell id="corerg" value="RG circleguard-core-rg" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;fontStyle=1;fontSize=13;fillColor=#f0f7ff;strokeColor=#0078d4;" vertex="1" parent="1">
+          <mxGeometry x="380" y="335" width="1090" height="800" as="geometry" />
+        </mxCell>
+        <mxCell id="acr" value="ACR circleguardacrcore (Basic)&#10;circle-guard/&lt;servicio&gt;:vX.Y.Z + latest" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="410" y="370" width="330" height="65" as="geometry" />
+        </mxCell>
+
+        <mxCell id="aks" value="AKS circleguard-aks — Free tier · 2× Standard_D2s_v3 · Managed Identity" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;fontStyle=1;fontSize=13;fillColor=#e1f5fe;strokeColor=#0288d1;" vertex="1" parent="1">
+          <mxGeometry x="410" y="460" width="1040" height="660" as="geometry" />
+        </mxCell>
+        <mxCell id="ingress" value="ingress-nginx — Service LoadBalancer + IP pública · termina TLS (gateway / grafana)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="440" y="495" width="980" height="45" as="geometry" />
+        </mxCell>
+
+        <mxCell id="devns" value="namespace: dev  (integración + capa de datos)" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;fontStyle=1;fontSize=12;fillColor=#ffffff;strokeColor=#9673a6;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="440" y="570" width="320" height="530" as="geometry" />
+        </mxCell>
+        <mxCell id="msdev" value="8 Microservicios (Spring Boot)&#10;gateway:8087 · auth:8180&#10;identity:8083 · promotion:8088&#10;form:8086 · dashboard:8084&#10;notification:8082 · file:8085" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="455" y="605" width="290" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="pg" value="PostgreSQL 17&#10;(5 bases)" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;direction=north;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="460" y="745" width="120" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="redis" value="Redis 7" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;direction=north;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="620" y="745" width="120" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="neo4j" value="Neo4j 5&#10;(grafo)" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;direction=north;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="460" y="845" width="120" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="kafka" value="Kafka 3.7&#10;(KRaft)" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;direction=north;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="620" y="845" width="120" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="ldap" value="OpenLDAP (autenticación corporativa)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="460" y="945" width="280" height="45" as="geometry" />
+        </mxCell>
+
+        <mxCell id="stgns" value="namespace: stage  (pre-prod + observabilidad)" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;fontStyle=1;fontSize=12;fillColor=#ffffff;strokeColor=#9673a6;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="780" y="570" width="370" height="530" as="geometry" />
+        </mxCell>
+        <mxCell id="msstg" value="8 Microservicios (perfil staging)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="795" y="605" width="340" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="prom" value="Prometheus&#10;(scrape /actuator/prometheus)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="795" y="685" width="165" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="graf" value="Grafana&#10;(dashboards)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="975" y="685" width="160" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="alert" value="Alertmanager&#10;(reglas críticas)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="795" y="755" width="165" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="jaeger" value="Jaeger&#10;(trazas OTLP)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="975" y="755" width="160" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="elk" value="ELK — Logstash → Elasticsearch → Kibana&#10;(logs centralizados)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="795" y="825" width="340" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="prdns" value="namespace: production" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;fontStyle=1;fontSize=12;fillColor=#ffffff;strokeColor=#9673a6;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="1170" y="570" width="260" height="530" as="geometry" />
+        </mxCell>
+        <mxCell id="msprd" value="8 Microservicios&#10;(perfil production)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1185" y="605" width="230" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="i1" value="HTTPS" style="endArrow=block;html=1;fontSize=11;" edge="1" parent="1" source="users" target="ingress"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="i2" value="uses @master" style="endArrow=block;html=1;fontSize=10;dashed=1;" edge="1" parent="1" source="devrepo" target="opsrepo"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="i3" value="" style="endArrow=block;html=1;" edge="1" parent="1" source="devrepo" target="actions"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="i4" value="" style="endArrow=block;html=1;" edge="1" parent="1" source="opsrepo" target="actions"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="i5" value="docker push" style="endArrow=block;html=1;fontSize=10;" edge="1" parent="1" source="actions" target="acr"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="i6" value="kubectl apply / rollout" style="endArrow=block;html=1;fontSize=10;" edge="1" parent="1" source="actions" target="aks"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="i7" value="AcrPull (Managed Identity)" style="endArrow=block;html=1;fontSize=10;" edge="1" parent="1" source="acr" target="aks"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="i8" value="Terraform (backend azurerm)" style="endArrow=block;html=1;fontSize=10;dashed=1;" edge="1" parent="1" source="opsrepo" target="tfstate"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="i9" value="Terraform provisiona (AKS · ACR · RG)" style="endArrow=block;html=1;fontSize=10;dashed=1;" edge="1" parent="1" source="opsrepo" target="corerg"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="i10" value="JDBC · Redis · Bolt · Kafka · LDAP" style="endArrow=block;html=1;fontSize=10;" edge="1" parent="1" source="msdev" target="pg"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="i11" value="scrape métricas" style="endArrow=block;html=1;fontSize=10;" edge="1" parent="1" source="prom" target="msstg"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="i12" value="logs" style="endArrow=block;html=1;fontSize=10;" edge="1" parent="1" source="msstg" target="elk"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="i13" value="trazas" style="endArrow=block;html=1;fontSize=10;" edge="1" parent="1" source="msstg" target="jaeger"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="i14" value="" style="endArrow=block;html=1;" edge="1" parent="1" source="prom" target="graf"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="i15" value="" style="endArrow=block;html=1;" edge="1" parent="1" source="prom" target="alert"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="i16" value="métricas / logs / trazas" style="endArrow=open;html=1;fontSize=10;dashed=1;" edge="1" parent="1" source="msprd" target="stgns"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="i17" value="" style="endArrow=block;html=1;dashed=1;" edge="1" parent="1" source="ingress" target="devns"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="i18" value="" style="endArrow=block;html=1;dashed=1;" edge="1" parent="1" source="ingress" target="stgns"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="i19" value="" style="endArrow=block;html=1;dashed=1;" edge="1" parent="1" source="ingress" target="prdns"><mxGeometry relative="1" as="geometry" /></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+
+  <diagram name="2 - Aplicación: servicios, datos y eventos" id="page-app">
+    <mxGraphModel dx="1422" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1650" pageHeight="1050" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="leg" value="Leyenda&#10;— azul: HTTP / REST (síncrono)&#10;— gris: acceso a datos (JDBC / Bolt / LDAP)&#10;— naranja punteado: eventos Kafka (asíncrono)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=11;align=left;spacingLeft=8;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="40" y="40" width="360" height="95" as="geometry" />
+        </mxCell>
+
+        <mxCell id="aing" value="Usuarios → ingress-nginx (TLS) → gateway de la API" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="120" y="170" width="940" height="45" as="geometry" />
+        </mxCell>
+
+        <mxCell id="gateway" value="gateway-service&#10;:8087&#10;valida QR de entrada" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="120" y="280" width="190" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="auth" value="auth-service&#10;:8180&#10;login + emite JWT/QR" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="350" y="280" width="190" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="dashboard" value="dashboard-service&#10;:8084&#10;analítica anonimizada" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="580" y="280" width="190" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="file" value="file-service&#10;:8085&#10;almacenamiento de archivos" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="810" y="280" width="190" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="identity" value="identity-service&#10;:8083&#10;bóveda de identidad (anonimización)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="120" y="470" width="190" height="85" as="geometry" />
+        </mxCell>
+        <mxCell id="form" value="form-service&#10;:8086&#10;encuestas de salud + certificados" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="350" y="470" width="190" height="85" as="geometry" />
+        </mxCell>
+        <mxCell id="promotion" value="promotion-service&#10;:8088&#10;rastreo de contactos + cuarentenas" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="580" y="470" width="190" height="85" as="geometry" />
+        </mxCell>
+        <mxCell id="notification" value="notification-service&#10;:8082&#10;envía alertas (push/SMS/email)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="810" y="470" width="190" height="85" as="geometry" />
+        </mxCell>
+
+        <mxCell id="kbus" value="Apache Kafka — bus de eventos (KRaft)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="120" y="660" width="880" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="pg2" value="PostgreSQL 17&#10;auth · identity · promotion&#10;form · dashboard (5 DB)" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;direction=north;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1120" y="270" width="200" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="redis2" value="Redis 7&#10;cache de estado de salud&#10;(clave user:status:&lt;id&gt;)" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;direction=north;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1120" y="400" width="200" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="neo4j2" value="Neo4j 5&#10;grafo de contactos / círculos" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;direction=north;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1120" y="520" width="200" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="ldap2" value="OpenLDAP&#10;directorio corporativo" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1120" y="640" width="200" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ae1" value="" style="endArrow=block;html=1;strokeColor=#6c8ebf;" edge="1" parent="1" source="aing" target="gateway"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ae2" value="" style="endArrow=block;html=1;strokeColor=#6c8ebf;" edge="1" parent="1" source="aing" target="auth"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ae3" value="" style="endArrow=block;html=1;strokeColor=#6c8ebf;" edge="1" parent="1" source="aing" target="dashboard"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ae4" value="" style="endArrow=block;html=1;strokeColor=#6c8ebf;" edge="1" parent="1" source="aing" target="file"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <mxCell id="ae5" value="REST /map (Bulkhead)" style="endArrow=block;html=1;fontSize=10;strokeColor=#6c8ebf;" edge="1" parent="1" source="auth" target="identity"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ae6" value="REST stats" style="endArrow=block;html=1;fontSize=10;strokeColor=#6c8ebf;" edge="1" parent="1" source="dashboard" target="promotion"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ae7" value="REST alertas prioritarias" style="endArrow=block;html=1;fontSize=10;strokeColor=#6c8ebf;" edge="1" parent="1" source="notification" target="auth"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <mxCell id="ad1" value="estado QR" style="endArrow=block;html=1;fontSize=10;strokeColor=#666666;" edge="1" parent="1" source="gateway" target="redis2"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ad2" value="JDBC (auth)" style="endArrow=block;html=1;fontSize=10;strokeColor=#666666;" edge="1" parent="1" source="auth" target="pg2"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ad3" value="bind LDAP" style="endArrow=block;html=1;fontSize=10;strokeColor=#666666;" edge="1" parent="1" source="auth" target="ldap2"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ad4" value="JDBC (identity)" style="endArrow=block;html=1;fontSize=10;strokeColor=#666666;" edge="1" parent="1" source="identity" target="pg2"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ad5" value="JDBC (form)" style="endArrow=block;html=1;fontSize=10;strokeColor=#666666;" edge="1" parent="1" source="form" target="pg2"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ad6" value="JDBC (dashboard)" style="endArrow=block;html=1;fontSize=10;strokeColor=#666666;" edge="1" parent="1" source="dashboard" target="pg2"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ad7" value="JDBC (promotion)" style="endArrow=block;html=1;fontSize=10;strokeColor=#666666;" edge="1" parent="1" source="promotion" target="pg2"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ad8" value="Bolt (grafo)" style="endArrow=block;html=1;fontSize=10;strokeColor=#666666;" edge="1" parent="1" source="promotion" target="neo4j2"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ad9" value="cache estado" style="endArrow=block;html=1;fontSize=10;strokeColor=#666666;" edge="1" parent="1" source="promotion" target="redis2"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <mxCell id="ak1" value="produce: survey.submitted / certificate.validated" style="endArrow=open;html=1;fontSize=10;dashed=1;strokeColor=#d79b00;" edge="1" parent="1" source="form" target="kbus"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ak2" value="produce: audit.identity.accessed" style="endArrow=open;html=1;fontSize=10;dashed=1;strokeColor=#d79b00;" edge="1" parent="1" source="identity" target="kbus"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ak3" value="consume: survey.submitted" style="endArrow=open;html=1;fontSize=10;dashed=1;strokeColor=#d79b00;" edge="1" parent="1" source="kbus" target="promotion"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ak4" value="produce: promotion.status.changed" style="endArrow=open;html=1;fontSize=10;dashed=1;strokeColor=#d79b00;" edge="1" parent="1" source="promotion" target="kbus"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ak5" value="consume: promotion.status.changed" style="endArrow=open;html=1;fontSize=10;dashed=1;strokeColor=#d79b00;" edge="1" parent="1" source="kbus" target="notification"><mxGeometry relative="1" as="geometry" /></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
