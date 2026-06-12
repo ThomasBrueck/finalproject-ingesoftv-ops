@@ -338,47 +338,51 @@ jobs:
           FILE_SERVICE_URL: http://localhost:8085
         working-directory: app/e2e
         run: |
-          echo "=== Starting Port-Forwards ==="
           mkdir -p /tmp/pf-logs
-          kubectl port-forward -n stage service/circleguard-auth-service 8180:80 >/tmp/pf-logs/auth.log 2>&1 &
-          echo $! > /tmp/pf.pids
-          kubectl port-forward -n stage service/circleguard-identity-service 8083:80 >/tmp/pf-logs/identity.log 2>&1 &
-          echo $! >> /tmp/pf.pids
-          kubectl port-forward -n stage service/circleguard-promotion-service 8088:80 >/tmp/pf-logs/promotion.log 2>&1 &
-          echo $! >> /tmp/pf.pids
-          kubectl port-forward -n stage service/circleguard-notification-service 8082:80 >/tmp/pf-logs/notification.log 2>&1 &
-          echo $! >> /tmp/pf.pids
-          kubectl port-forward -n stage service/circleguard-form-service 8086:80 >/tmp/pf-logs/form.log 2>&1 &
-          echo $! >> /tmp/pf.pids
-          kubectl port-forward -n stage service/circleguard-gateway-service 8087:80 >/tmp/pf-logs/gateway.log 2>&1 &
-          echo $! >> /tmp/pf.pids
-          kubectl port-forward -n stage service/circleguard-dashboard-service 8084:80 >/tmp/pf-logs/dashboard.log 2>&1 &
-          echo $! >> /tmp/pf.pids
-          kubectl port-forward -n stage service/circleguard-file-service 8085:80 >/tmp/pf-logs/file.log 2>&1 &
-          echo $! >> /tmp/pf.pids
-          
+          rm -f /tmp/pf.pids
+          declare -A SVC_BY_PORT=(
+            [8180]=circleguard-auth-service
+            [8083]=circleguard-identity-service
+            [8088]=circleguard-promotion-service
+            [8082]=circleguard-notification-service
+            [8086]=circleguard-form-service
+            [8087]=circleguard-gateway-service
+            [8084]=circleguard-dashboard-service
+            [8085]=circleguard-file-service
+          )
+
+          # Causa raíz de fallos intermitentes en el gate: el port-forward se
+          # abría contra un servicio cuyo pod aún no servía (rollout en curso) y
+          # el túnel quedaba muerto los 180s (HTTP 000). Primero esperamos a que
+          # TODOS los deployments estén Available para hacer port-forward contra
+          # pods que ya están sirviendo.
+          echo "=== Esperando que los deployments de stage estén disponibles ==="
+          for svc in "${SVC_BY_PORT[@]}"; do
+            kubectl rollout status deployment/"$svc" -n stage --timeout=300s \
+              || kubectl wait --for=condition=available deployment/"$svc" -n stage --timeout=120s || true
+          done
+
+          start_pf() {
+            local port="$1"; local svc="${SVC_BY_PORT[$port]}"
+            kubectl port-forward -n stage "service/$svc" "$port:80" >"/tmp/pf-logs/$svc.log" 2>&1 &
+            echo $! >> /tmp/pf.pids
+          }
+
+          echo "=== Starting Port-Forwards ==="
+          for port in "${!SVC_BY_PORT[@]}"; do start_pf "$port"; done
           echo "Waiting for port-forward listeners to open..."
           sleep 5
 
-          echo "=== Port-Forward Initialization Logs ==="
-          for f in /tmp/pf-logs/*.log; do
-            echo "--- $f ---"
-            cat "$f"
-          done
-
-          # Active readiness gate: wait until every service returns HTTP 200 on
-          # /actuator/health before running any test.
-          # Checking / (root) was not enough: Tomcat binds and returns 404 early,
-          # but with probes.enabled=true Spring Boot keeps /actuator/health at 503
-          # (REFUSING_TRAFFIC) until the full application context is ready.
-          # Tests calling /actuator/health or /actuator/prometheus were failing with
-          # 503 / AssertionFailedError on slower services (identity, promotion,
-          # form, gateway) that took >8s but <180s to fully start.
+          # Gate de readiness activo: esperar HTTP 200 en /actuator/health de cada
+          # servicio antes de correr los tests. Con probes.enabled=true Spring Boot
+          # mantiene /actuator/health en 503 hasta que el contexto está listo.
+          # Si un puerto sigue en 000 (túnel caído) se reinicia su port-forward
+          # cada ~30s, defensa ante túneles de kubectl que no se auto-recuperan.
           echo "=== Waiting for all services to report healthy (HTTP 200) ==="
-          PORTS="8180 8083 8088 8082 8086 8087 8084 8085"
           FAILED=0
-          for port in $PORTS; do
-            printf "localhost:%s /actuator/health ... " "$port"
+          for port in 8180 8083 8088 8082 8086 8087 8084 8085; do
+            svc="${SVC_BY_PORT[$port]}"
+            printf "%s (localhost:%s) ... " "$svc" "$port"
             UP=0
             for i in $(seq 1 60); do
               CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 5 "http://localhost:$port/actuator/health" 2>/dev/null || echo 000)
@@ -386,6 +390,11 @@ jobs:
                 echo "UP after $((i*3))s"
                 UP=1
                 break
+              fi
+              if [ "$CODE" = "000" ] && [ $((i % 10)) -eq 0 ]; then
+                printf "(túnel caído, reiniciando port-forward) "
+                pkill -f "port-forward -n stage service/$svc " 2>/dev/null || true
+                sleep 1; start_pf "$port"; sleep 3
               fi
               sleep 3
             done
@@ -395,6 +404,8 @@ jobs:
             fi
           done
           if [ "$FAILED" = "1" ]; then
+            echo "=== Logs de port-forward ==="
+            for f in /tmp/pf-logs/*.log; do echo "--- $f ---"; cat "$f"; done
             echo "::error::One or more services did not become healthy within 180s."
             exit 1
           fi
