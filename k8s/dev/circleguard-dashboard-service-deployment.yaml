@@ -41,6 +41,11 @@ spec:
         env:
         - name: SPRING_PROFILES_ACTIVE
           value: "dev"
+        # dashboard-service llama a promotion vía REST; sin esta URL caía al
+        # default http://localhost:8088 (a sí mismo) → Connection refused y el
+        # Circuit Breaker quedaba abierto, devolviendo analítica vacía.
+        - name: CIRCLEGUARD_PROMOTION_SERVICE_URL
+          value: "http://circleguard-promotion-service:80"
         - name: SPRING_DATASOURCE_URL
           value: "jdbc:postgresql://postgres-dev-postgresql.dev.svc.cluster.local:5432/circleguard_dashboard?sslmode=disable"
         - name: SPRING_DATASOURCE_USERNAME
